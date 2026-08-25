@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  --color-ink: #3D1645;       /* violet profond / prune, comme sur la carte */
+  --color-ink-light: #612A66;
+  --color-amber: #E8C46C;     /* or chaud / doré */
+  --color-amber-dark: #C8932B;
+  --color-sage: #E62D8C;      /* rose fuchsia / accent signature */
+  --color-paper: #FFF7FB;     /* fond doux rose clair */
+  --color-surface: #FFFFFF;
+  --color-line: #F2D9E9;
+  --color-muted: #7A4C6A;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.font-display { font-family: var(--font-display); }
+
+/* Motif "côtes de tricot" - signature visuelle du site, discret */
+.rib-divider {
+  height: 14px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--color-amber) 0px,
+    var(--color-amber) 2px,
+    transparent 2px,
+    transparent 10px
+  );
+  opacity: 0.5;
+}
+
+::selection {
+  background-color: var(--color-amber);
+  color: white;
+}
+
+/* focus visible clavier - accessibilité */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
