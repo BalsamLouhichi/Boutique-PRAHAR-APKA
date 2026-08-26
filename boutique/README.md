@@ -56,7 +56,7 @@ boutique/
    ```bash
    docker compose up -d --build
    ```
-   Cela démarre PostgreSQL (avec le schéma + les données de démo importés automatiquement),
+   Cela démarre PostgreSQL (avec le schéma + les données de démo importés automatiquement lors de la première création du volume),
    l'API backend, et le frontend servi par Nginx sur le port défini (`HTTP_PORT`, 80 par défaut).
 
 3. **Créer votre vrai compte admin** (le compte de démo n'est pas utilisable tel quel) :
@@ -70,12 +70,13 @@ boutique/
    ```
 
 4. **Configurer votre numéro WhatsApp et vos textes** :
-   Connectez-vous à l'admin (`https://votredomaine.com/admin/login`), ou directement en base :
+   Les réglages du site se modifient directement via l'API protégée ou dans PostgreSQL :
    ```bash
    docker compose exec db psql -U postgres -d boutique -c \
      "UPDATE site_settings SET value='21620000000' WHERE key='whatsapp_number';"
    ```
-   Format attendu : indicatif pays + numéro, sans espaces ni "+" (ex: `21620000000` pour la Tunisie).
+   Format attendu pour WhatsApp : indicatif pays + numéro, sans espaces ni "+" (ex: `21620000000` pour la Tunisie).
+   Les autres clés disponibles comprennent notamment `brand_tagline` et `brand_description`.
 
 5. **Accéder au site** :
    - Site public : `http://localhost` (ou votre domaine)
@@ -120,7 +121,7 @@ docker compose up -d --build
 ### Backend
 ```bash
 cd backend
-cp .env.example .env   # adapter DB_HOST=localhost etc.
+   cp .env.example .env   # sous Windows, copier .env.example vers .env manuellement
 npm install
 # Créer la base PostgreSQL localement puis :
 psql -U postgres -d boutique -f ../db/schema.sql
@@ -168,11 +169,12 @@ Depuis `/admin`, vous pouvez :
 - Créer / modifier / supprimer des articles (nom, description, catégorie, saison, genre,
   couleurs, tailles, matière, quantité minimale de commande)
 - Uploader plusieurs photos par article
+- Remplacer la photo principale d'un article ou supprimer une image
 - Marquer un article comme "Nouveauté" (affiché dans le carrousel homepage) ou "Mise en avant"
 - Activer/désactiver la visibilité d'un article sans le supprimer
 
-Les catégories (Casquettes, Bonnets, Cache-cols, Écharpes...) sont gérables via l'API
-`/api/categories` (un écran dédié dans l'admin peut être ajouté facilement si besoin).
+Les catégories (Casquettes, Bonnets, Cache-cols, Écharpes...) sont gérables depuis l'écran admin
+`/admin/categories` ou via l'API `/api/categories`.
 
 ## 6. Filtres disponibles côté client
 
