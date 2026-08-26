@@ -1,0 +1,13 @@
+# Vite cache
+.vite/
+
+# Dependencies and build outputs
+node_modules/
+dist/
+
+# Environment files
+.env
+
+# Uploaded files
+boutique/backend/uploads/*
+!boutique/backend/uploads/.gitkeep
