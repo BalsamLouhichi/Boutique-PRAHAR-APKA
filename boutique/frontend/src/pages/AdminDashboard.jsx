@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { api, resolveImageUrl } from '../api/client.js';
 import ProductForm from '../components/admin/ProductForm.jsx';
 
 export default function AdminDashboard() {
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
                   {products.slice(0, 4).map((product) => (
                     <div key={product.id} className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-[var(--color-paper)] overflow-hidden flex-shrink-0">
-                        {product.primary_image && <img src={product.primary_image} alt="" className="w-full h-full object-cover" />}
+                        {product.primary_image && <img src={resolveImageUrl(product.primary_image)} alt="" className="w-full h-full object-cover" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-medium truncate">{product.name}</p>
@@ -193,7 +193,7 @@ export default function AdminDashboard() {
                   <tr key={p.id} className="border-t border-[var(--color-line)]">
                     <td className="px-4 py-3">
                       <div className="w-12 h-12 rounded-lg bg-[var(--color-paper)] overflow-hidden">
-                        {p.primary_image && <img src={p.primary_image} alt="" className="w-full h-full object-cover" />}
+                        {p.primary_image && <img src={resolveImageUrl(p.primary_image)} alt="" className="w-full h-full object-cover" />}
                       </div>
                     </td>
                     <td className="px-4 py-3 font-medium">{p.name}{p.is_new && <span className="ml-2 text-xs bg-[var(--color-sage)] text-white px-2 py-0.5 rounded-full">Nouveau</span>}</td>

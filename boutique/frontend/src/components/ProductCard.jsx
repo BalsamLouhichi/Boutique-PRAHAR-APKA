@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useCart } from '../context/CartContext.jsx';
+import { resolveImageUrl } from '../api/client.js';
+
 
 const SEASON_LABELS = { hiver: 'Hiver', ete: 'Été', printemps: 'Printemps', automne: 'Automne', toutes_saisons: 'Toutes saisons' };
 const GENDER_LABELS = { homme: 'Homme', femme: 'Femme', enfant: 'Enfant', unisexe: 'Unisexe' };
@@ -16,8 +18,7 @@ export default function ProductCard({ product }) {
       <div className="relative aspect-square bg-[var(--color-paper)] overflow-hidden">
         {product.primary_image ? (
           <img
-            src={product.primary_image}
-            alt={product.name}
+            src={resolveImageUrl(product.primary_image)} alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (

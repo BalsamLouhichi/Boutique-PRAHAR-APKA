@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext.jsx';
-import { api } from '../api/client.js';
+import { api, resolveImageUrl } from '../api/client.js';
 import { buildWhatsAppMessage, buildWhatsAppUrl } from '../utils/whatsapp.js';
 
 export default function CartDrawer() {
@@ -73,7 +73,7 @@ export default function CartDrawer() {
               {items.map((it) => (
                 <li key={it.key} className="flex gap-3 border-b border-[var(--color-line)] pb-4">
                   <div className="w-16 h-16 rounded-lg bg-[var(--color-paper)] flex-shrink-0 overflow-hidden">
-                    {it.image && <img src={it.image} alt={it.product_name} className="w-full h-full object-cover" />}
+                    {it.image && <img src={resolveImageUrl(it.image)} alt={it.product_name} className="w-full h-full object-cover" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{it.product_name}</p>
