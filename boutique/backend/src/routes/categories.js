@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, designation, description FROM categories WHERE is_active = TRUE ORDER BY name ASC'
+      'SELECT id, name, slug, description FROM categories WHERE is_active = TRUE ORDER BY name ASC'
     );
     res.json(result.rows);
   } catch (err) {
@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
 router.get('/admin/all', authenticateAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, designation, description, is_active, created_at FROM categories ORDER BY name ASC'
+      'SELECT id, name, slug, description, is_active, created_at FROM categories ORDER BY name ASC'
     );
     res.json(result.rows);
   } catch (err) {
@@ -35,16 +35,16 @@ router.get('/admin/all', authenticateAdmin, async (req, res) => {
 router.post(
   '/',
   authenticateAdmin,
-  [body('name').trim().isLength({ min: 2, max: 100 }), body('designation').trim().isLength({ min: 2, max: 100 })],
+  [body('name').trim().isLength({ min: 2, max: 100 }), body('slug').trim().isLength({ min: 2, max: 100 })],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { name, designation, description } = req.body;
+    const { name, slug, description } = req.body;
     try {
       const result = await pool.query(
-        'INSERT INTO categories (name, designation, description) VALUES ($1,$2,$3) RETURNING *',
-        [name, designation, description || null]
+        'INSERT INTO categories (name, slug, description) VALUES ($1,$2,$3) RETURNING *',
+        [name, slug, description || null]
       );
       res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -58,11 +58,11 @@ router.post(
 // Mise à jour (admin)
 router.put('/:id', authenticateAdmin, async (req, res) => {
   const { id } = req.params;
-  const { name, designation, description, is_active } = req.body;
+  const { name, slug, description, is_active } = req.body;
   try {
     const result = await pool.query(
-      `UPDATE categories SET name=$1, designation=$2, description=$3, is_active=$4 WHERE id=$5 RETURNING *`,
-      [name, designation, description, is_active, id]
+      `UPDATE categories SET name=$1, slug=$2, description=$3, is_active=$4 WHERE id=$5 RETURNING *`,
+      [name, slug, description, is_active, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Catégorie introuvable.' });
     res.json(result.rows[0]);
