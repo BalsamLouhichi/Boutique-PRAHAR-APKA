@@ -4,6 +4,15 @@ function getToken() {
   return localStorage.getItem('admin_token');
 }
 
+// Si l'URL de l'image est relative (ex: /uploads/xxx.png), on la préfixe
+// avec l'URL du backend. Si c'est déjà une URL complète (http...), on la
+// laisse telle quelle.
+export function resolveImageUrl(url) {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${BASE_URL}${url}`;
+}
+
 async function request(path, { method = 'GET', body, auth = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
