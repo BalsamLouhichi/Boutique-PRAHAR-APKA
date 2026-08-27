@@ -4,7 +4,7 @@
 -- Hash bcrypt généré pour "Admin123!"
 -- ============================================================
 
-INSERT INTO categories (name, designation, description) VALUES
+INSERT INTO categories (name, slug, description) VALUES
     ('Casquettes', 'casquettes', 'Casquettes pour homme, femme et enfant', 1),
     ('Bonnets', 'bonnets', 'Bonnets chauds pour l''hiver', 2),
     ('Cache-cols', 'cache-cols', 'Cache-cols et tours de cou', 3),

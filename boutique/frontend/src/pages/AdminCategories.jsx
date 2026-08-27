@@ -4,7 +4,7 @@ import { api } from '../api/client.js';
 
 const emptyForm = {
   name: '',
-  designation: '',
+  slug: '',
   description: '',
   is_active: true,
 };
@@ -45,7 +45,7 @@ export default function AdminCategories() {
     setEditingCategory(category);
     setForm({
       name: category.name,
-      designation: category.designation,
+      slug: category.slug,
       description: category.description || '',
       is_active: category.is_active,
     });
@@ -61,7 +61,7 @@ export default function AdminCategories() {
     try {
       const payload = {
         name: form.name.trim(),
-        designation: form.designation.trim(),
+        slug: form.slug.trim(),
         description: form.description.trim(),
         is_active: Boolean(form.is_active),
       };
@@ -170,7 +170,7 @@ export default function AdminCategories() {
                   {categories.map((category) => (
                     <tr key={category.id} className="border-t border-[var(--color-line)]">
                       <td className="px-4 py-3 font-medium text-[var(--color-ink)]">{category.name}</td>
-                      <td className="px-4 py-3 text-[var(--color-muted)]">{category.designation}</td>
+                      <td className="px-4 py-3 text-[var(--color-muted)]">{category.slug}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-xs ${category.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                           {category.is_active ? 'Actif' : 'Inactif'}
@@ -227,8 +227,8 @@ export default function AdminCategories() {
                 <label className="block text-sm font-medium mb-1">Désignation</label>
                 <input
                   required
-                  value={form.designation}
-                  onChange={(e) => setForm((prev) => ({ ...prev, designation: e.target.value }))}
+                  value={form.slug}
+                  onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value }))}
                   className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm"
                 />
               </div>

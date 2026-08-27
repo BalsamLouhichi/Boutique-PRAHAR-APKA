@@ -41,8 +41,8 @@ export default function FilterSidebar({ filters, onChange, isOpen, onClose }) {
           {categories.map((c) => (
             <button
               key={c.id}
-              onClick={() => update('category', c.designation)}
-              className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${filters.category === c.designation ? 'bg-[var(--color-ink)] text-white' : 'hover:bg-[var(--color-paper)]'}`}
+              onClick={() => update('category', c.slug)}
+              className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${filters.category === c.slug ? 'bg-[var(--color-ink)] text-white' : 'hover:bg-[var(--color-paper)]'}`}
             >
               {c.name}
             </button>
