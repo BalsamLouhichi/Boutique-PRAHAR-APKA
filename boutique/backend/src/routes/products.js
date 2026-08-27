@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
-const { body, validationResult, query } = require('express-validator');
+const { body, validationResult } = require('express-validator');
 const pool = require('../config/db');
 const { authenticateAdmin } = require('../middleware/auth');
 
@@ -11,7 +11,8 @@ const router = express.Router();
 // ---- Upload d'images sécurisé ----
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.resolve(__dirname, '../../../uploads')),
+  // backend/src/routes -> ../../uploads = backend/uploads (2 niveaux, pas 3)
+  destination: (req, file, cb) => cb(null, path.resolve(__dirname, '../../uploads')),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const safeName = crypto.randomBytes(16).toString('hex') + ext;
@@ -20,7 +21,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024, files: 6 }, // 5 Mo max / fichier
+  limits: { fileSize: 5 * 1024 * 1024, files: 6 },
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_MIME.includes(file.mimetype)) {
       return cb(new Error('Type de fichier non autorisé (jpeg, png, webp uniquement).'));
@@ -29,9 +30,15 @@ const upload = multer({
   },
 });
 
+// Valide qu'une valeur représente un entier, que ce soit un Number JSON
+// ou une chaîne de caractères (contrairement à isInt() qui n'accepte que
+// des chaînes et rejette les nombres JSON, causant de faux 400).
+function isIntegerLike(value) {
+  return Number.isInteger(Number(value)) && value !== '' && value !== null && value !== undefined;
+}
+
 // =========================================================
 // GET /api/products - liste publique avec filtres + pagination
-// query: category, season, gender, is_new, search, page, limit
 // =========================================================
 router.get('/', async (req, res) => {
   const { category, season, gender, is_new, search } = req.query;
@@ -44,7 +51,7 @@ router.get('/', async (req, res) => {
 
   if (category) {
     params.push(category);
-    conditions.push(`c.designation = $${params.length}`);
+    conditions.push(`c.slug = $${params.length}`);
   }
   if (season) {
     params.push(season);
@@ -74,7 +81,7 @@ router.get('/', async (req, res) => {
     const result = await pool.query(
       `SELECT p.id, p.reference, p.name, p.slug, p.description, p.season, p.gender,
               p.min_order_qty, p.colors, p.sizes, p.material,
-              p.is_new, p.is_featured, c.name AS category_name, c.designation AS category_designation,
+              p.is_new, p.is_featured, c.name AS category_name, c.slug AS category_slug,
               (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id
                  ORDER BY pi.is_primary DESC, pi.created_at DESC, pi.display_order ASC LIMIT 1) AS primary_image
        FROM products p
@@ -99,7 +106,7 @@ router.get('/', async (req, res) => {
 router.get('/:slug', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT p.*, c.name AS category_name, c.designation AS category_designation
+      `SELECT p.*, c.name AS category_name, c.slug AS category_slug
        FROM products p JOIN categories c ON c.id = p.category_id
        WHERE p.slug = $1 AND p.is_active = TRUE`,
       [req.params.slug]
@@ -124,7 +131,6 @@ router.get('/:slug', async (req, res) => {
 // Routes ADMIN protégées
 // =========================================================
 
-// Liste complète (y compris inactifs) pour le back-office
 router.get('/admin/all', authenticateAdmin, async (req, res) => {
   try {
     const result = await pool.query(
@@ -148,7 +154,7 @@ router.post(
   [
     body('name').trim().isLength({ min: 2, max: 200 }),
     body('slug').trim().isLength({ min: 2, max: 220 }),
-    body('category_id').isInt(),
+    body('category_id').custom(isIntegerLike).withMessage('Catégorie invalide.'),
     body('season').isIn(['hiver', 'ete', 'printemps', 'automne', 'toutes_saisons']),
     body('gender').isIn(['homme', 'femme', 'enfant', 'unisexe']),
   ],
@@ -196,7 +202,7 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
         reference=$1, name=$2, slug=$3, description=$4, category_id=$5, season=$6, gender=$7,
         min_order_qty=$8, colors=$9, sizes=$10, material=$11,
         is_new=$12, is_featured=$13, is_active=$14
-             WHERE id=$15 RETURNING *`,
+       WHERE id=$15 RETURNING *`,
       [
         reference, name, slug, description, category_id, season, gender,
         min_order_qty, colors, sizes, material,
@@ -244,13 +250,8 @@ router.post('/:id/images', authenticateAdmin, upload.array('images', 6), async (
 
       const result = await pool.query(
         `UPDATE product_images
-         SET image_url = $2,
-             alt_text = NULL,
-             is_primary = TRUE,
-             display_order = 0,
-             created_at = now()
-         WHERE id = $1
-         RETURNING *`,
+         SET image_url = $2, alt_text = NULL, is_primary = TRUE, display_order = 0, created_at = now()
+         WHERE id = $1 RETURNING *`,
         [existing.id, newUrl]
       );
 
@@ -295,7 +296,6 @@ router.delete('/images/:imageId', authenticateAdmin, async (req, res) => {
         'SELECT id FROM product_images WHERE product_id = $1 ORDER BY display_order ASC, created_at ASC LIMIT 1',
         [product_id]
       );
-
       if (fallback.rows.length > 0) {
         await pool.query('UPDATE product_images SET is_primary = TRUE WHERE id = $1', [fallback.rows[0].id]);
       }
