@@ -14,7 +14,7 @@ const quoteRoutes = require('./routes/quotes');
 const settingsRoutes = require('./routes/settings');
 
 const app = express();
-const uploadsDir = path.resolve(__dirname, '../../uploads');
+const uploadsDir = path.resolve(__dirname, '../uploads');
 fs.mkdirSync(uploadsDir, { recursive: true });
 
 // --- Sécurité de base ---
@@ -50,7 +50,6 @@ app.use(rateLimit({
 
 // Fichiers uploadés (images produits) servis statiquement
 app.use('/uploads', express.static(uploadsDir));
-app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
 // --- Routes API ---
 app.use('/api/auth', authRoutes);

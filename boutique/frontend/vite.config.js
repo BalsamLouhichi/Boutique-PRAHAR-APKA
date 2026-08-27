@@ -7,6 +7,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    allowedHosts: ['.loca.lt'],
     proxy: {
       '/api': 'http://localhost:4000',
       '/uploads': 'http://localhost:4000',

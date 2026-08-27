@@ -1,4 +1,4 @@
-# PRAHAR ŞAPKA — Site vitrine B2B (casquettes, bonnets, cache-cols)
+# PRAHAR ŞAPKA — Site vitrine B2B
 
 Site vitrine + espace admin pour une boutique de vente en gros, sans paiement en ligne :
 le client compose son panier (quantités par article) puis clique sur **"Demander un devis"**,
