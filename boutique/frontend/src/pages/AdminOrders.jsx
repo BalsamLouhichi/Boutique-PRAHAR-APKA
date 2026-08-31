@@ -172,8 +172,11 @@ export default function AdminOrders() {
                 <p className="text-xs font-semibold uppercase text-[var(--color-muted)] mb-2">Articles</p>
                 <ul className="space-y-1 text-sm">
                   {orderItems.map((it) => (
-                    <li key={it.id} className="flex justify-between">
-                      <span>{it.product_name_snapshot} × {it.quantity}</span>
+                    <li key={it.id} className="flex items-start justify-between gap-3">
+                      <span>
+                        <span className="block">{it.product_name_snapshot} × {it.quantity}</span>
+                        <span className="block text-xs text-[var(--color-muted)]">Réf. : {it.product_reference || 'non disponible'}</span>
+                      </span>
                       <span>{formatPrice(it.line_total, selectedOrder.currency)}</span>
                     </li>
                   ))}

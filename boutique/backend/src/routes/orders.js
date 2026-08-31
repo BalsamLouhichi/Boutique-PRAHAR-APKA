@@ -162,7 +162,14 @@ router.get('/', authenticateAdmin, async (req, res) => {
 // Détail d'une commande (admin)
 router.get('/admin/:id/items', authenticateAdmin, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM order_items WHERE order_id = $1', [req.params.id]);
+    const result = await pool.query(
+      `SELECT oi.*, p.reference AS product_reference
+       FROM order_items oi
+       LEFT JOIN products p ON p.id = oi.product_id
+       WHERE oi.order_id = $1
+       ORDER BY oi.id ASC`,
+      [req.params.id]
+    );
     res.json(result.rows);
   } catch (err) {
     console.error(err);
