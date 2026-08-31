@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 
 const emptyForm = {
@@ -10,6 +10,7 @@ const emptyForm = {
 };
 
 export default function AdminCategories() {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -100,9 +101,14 @@ export default function AdminCategories() {
     }
   }
 
+  function handleLogout() {
+    localStorage.removeItem('admin_token');
+    navigate('/admin/login');
+  }
+
   return (
-    <div className="min-h-screen bg-[var(--color-paper)] flex min-w-[1200px]">
-      <aside className="w-72 min-w-[18rem] bg-[var(--color-ink)] text-white p-6 flex-shrink-0">
+    <div className="min-h-screen bg-[var(--color-paper)] flex">
+      <aside className="w-72 bg-[var(--color-ink)] text-white p-6 flex-shrink-0">
         <div className="mb-8">
           <h1 className="font-display text-3xl">PRAHAR ŞAPKA</h1>
           <p className="mt-2 text-sm text-white/70">Admin panel</p>
@@ -118,6 +124,9 @@ export default function AdminCategories() {
           <Link to="/admin/categories" className="flex items-center justify-between rounded-xl px-3 py-2.5 bg-white/10 text-white font-medium hover:bg-white/15 transition-colors">
             <span>Catégories</span>
           </Link>
+          <Link to="/admin/orders" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
+            <span>Commandes</span>
+          </Link>
           <button
             onClick={openCreateModal}
             className="w-full text-left rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors"
@@ -125,6 +134,10 @@ export default function AdminCategories() {
             + Nouvelle catégorie
           </button>
         </nav>
+
+        <div className="mt-10 pt-6 border-t border-white/10">
+          <button onClick={handleLogout} className="text-sm text-white/80 hover:text-white transition-colors">Déconnexion</button>
+        </div>
       </aside>
 
       <div className="flex-1">

@@ -1,21 +1,23 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveImageUrl } from '../api/client.js';
+import { effectivePrice, formatPrice, hasPromo } from '../utils/price.js';
 
 
-const SEASON_LABELS = { hiver: 'Hiver', ete: 'Été', printemps: 'Printemps', automne: 'Automne', toutes_saisons: 'Toutes saisons' };
+const SEASON_LABELS = { hiver: 'Hiver', ete: 'Été' };
 const GENDER_LABELS = { homme: 'Homme', femme: 'Femme', enfant: 'Enfant', unisexe: 'Unisexe' };
 
 export default function ProductCard({ product }) {
   const { addItem } = useCart();
-  const [quantity, setQuantity] = useState(product.min_order_qty || 1);
+  const [quantity, setQuantity] = useState(1);
   const [color, setColor] = useState(product.colors?.[0] || '');
   const [size, setSize] = useState(product.sizes?.[0] || '');
   const [showOptions, setShowOptions] = useState(false);
 
   return (
     <div className="group w-full min-w-0 h-full bg-white rounded-2xl border border-[var(--color-line)] overflow-hidden hover:shadow-lg hover:border-[var(--color-amber)] transition-all flex flex-col">
-      <div className="relative aspect-square bg-[var(--color-paper)] overflow-hidden">
+      <Link to={`/produit/${product.slug}`} className="relative aspect-square bg-[var(--color-paper)] overflow-hidden block">
         {product.primary_image ? (
           <img
             src={resolveImageUrl(product.primary_image)} alt={product.name}
@@ -31,16 +33,39 @@ export default function ProductCard({ product }) {
             Nouveau
           </span>
         )}
-      </div>
+      </Link>
 
       <div className="p-4 flex-1 flex flex-col min-h-[220px]">
         <p className="text-xs uppercase tracking-wide text-[var(--color-amber-dark)] font-semibold mb-1">
           {product.category_name}
         </p>
-        <h3 className="font-display text-lg leading-snug mb-1 line-clamp-2">{product.name}</h3>
+        <Link to={`/produit/${product.slug}`} className="font-display text-lg leading-snug mb-1 line-clamp-2 hover:text-[var(--color-amber-dark)]">{product.name}</Link>
         <p className="text-xs text-[var(--color-muted)] mb-3 min-h-[36px]">
-          {SEASON_LABELS[product.season]} · {GENDER_LABELS[product.gender]} · Min. {product.min_order_qty} pièces
+          {SEASON_LABELS[product.season]} · {GENDER_LABELS[product.gender]}
         </p>
+
+        <div className="mb-3 flex items-baseline gap-2">
+          <span className="font-display text-xl text-[var(--color-ink)]">{formatPrice(effectivePrice(product))}</span>
+          {hasPromo(product) && <span className="text-sm text-[var(--color-muted)] line-through">{formatPrice(product.price)}</span>}
+          {hasPromo(product) && <span className="text-xs font-semibold text-[var(--color-sage)]">Promo</span>}
+        </div>
+
+        <div className="mb-4 space-y-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)] px-3 py-2.5 text-sm">
+          {product.colors?.length > 0 && (
+            <p className="leading-snug text-[var(--color-ink)]">
+              <span className="font-semibold">Couleurs disponibles</span>
+              <span className="text-[var(--color-muted)]"> : {product.colors.join(', ')}</span>
+            </p>
+          )}
+          {product.sizes?.length > 0 && (
+            <p className="leading-snug text-[var(--color-ink)]">
+              <span className="font-semibold">Tailles disponibles</span>
+              <span className="text-[var(--color-muted)]"> : {product.sizes.join(', ')}</span>
+            </p>
+          )}
+        </div>
+
+        <Link to={`/produit/${product.slug}`} className="mb-3 text-center text-sm font-semibold text-[var(--color-amber-dark)] hover:underline">Voir les détails</Link>
 
         {!showOptions ? (
           <button
@@ -52,21 +77,21 @@ export default function ProductCard({ product }) {
         ) : (
           <div className="mt-auto space-y-2">
             {product.colors?.length > 0 && (
-              <select value={color} onChange={(e) => setColor(e.target.value)} className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5">
-                {product.colors.map((c) => <option key={c} value={c}>{c}</option>)}
+              <select value={color} onChange={(e) => setColor(e.target.value)} className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5" aria-label="Choisir une couleur">
+                {product.colors.map((option) => <option key={option} value={option}>{option}</option>)}
               </select>
             )}
             {product.sizes?.length > 0 && (
-              <select value={size} onChange={(e) => setSize(e.target.value)} className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5">
-                {product.sizes.map((s) => <option key={s} value={s}>{s}</option>)}
+              <select value={size} onChange={(e) => setSize(e.target.value)} className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5" aria-label="Choisir une taille">
+                {product.sizes.map((option) => <option key={option} value={option}>{option}</option>)}
               </select>
             )}
             <div className="flex items-center gap-2">
               <input
                 type="number"
-                min={product.min_order_qty}
+                min={1}
                 value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || product.min_order_qty)}
+                onChange={(e) => setQuantity(Math.max(parseInt(e.target.value) || 1, 1))}
                 className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5"
               />
               <button

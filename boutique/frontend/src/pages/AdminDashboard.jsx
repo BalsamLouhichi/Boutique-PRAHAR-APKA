@@ -2,25 +2,27 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api, resolveImageUrl } from '../api/client.js';
 import ProductForm from '../components/admin/ProductForm.jsx';
+import { formatPrice } from '../utils/price.js';
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [quotes, setQuotes] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [productSearch, setProductSearch] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const isArticleManagement = location.pathname === '/admin/articles';
 
   function loadData() {
     setLoading(true);
-    Promise.all([api.getAdminProducts(), api.getCategories(), api.getAdminQuotes()])
-      .then(([p, c, q]) => {
+    Promise.all([api.getAdminProducts(), api.getCategories(), api.getOrders()])
+      .then(([p, c, o]) => {
         setProducts(p);
         setCategories(c);
-        setQuotes(q);
+        setOrders(o);
       })
       .catch((err) => {
         if (err.message.includes('401') || err.message.toLowerCase().includes('session')) {
@@ -44,9 +46,29 @@ export default function AdminDashboard() {
     loadData();
   }
 
+  async function handleEdit(product) {
+    try {
+      const completeProduct = await api.getAdminProduct(product.id);
+      setEditingProduct(completeProduct);
+      setShowForm(true);
+    } catch (err) {
+      alert(err.message || 'Impossible de charger les détails du produit.');
+    }
+  }
+
   const activeProducts = products.filter((product) => product.is_active).length;
   const newProducts = products.filter((product) => product.is_new).length;
   const featuredProducts = products.filter((product) => product.is_featured).length;
+  const activeOrders = orders.filter((order) => order.status !== 'annulee');
+  const revenue = activeOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const paidRevenue = orders.filter((order) => order.payment_status === 'paid').reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const newOrders = orders.filter((order) => order.status === 'nouvelle').length;
+  const normalizedProductSearch = productSearch.trim().toLocaleLowerCase();
+  const filteredProducts = normalizedProductSearch
+    ? products.filter((product) => [product.name, product.reference]
+      .filter(Boolean)
+      .some((value) => value.toLocaleLowerCase().includes(normalizedProductSearch)))
+    : products;
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)] flex">
@@ -65,6 +87,9 @@ export default function AdminDashboard() {
           </Link>
           <Link to="/admin/categories" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
             <span>Catégories</span>
+          </Link>
+          <Link to="/admin/orders" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
+            <span>Commandes</span>
           </Link>
           <button
             onClick={() => { setEditingProduct(null); setShowForm(true); }}
@@ -109,26 +134,26 @@ export default function AdminDashboard() {
         ) : (
           <>
             {!isArticleManagement && (
-            <section className="grid grid-cols-4 gap-4 mb-8">
+            <section className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
               <div className="bg-[var(--color-ink)] text-white rounded-2xl p-5">
-                <p className="text-sm text-white/70">Articles total</p>
-                <p className="font-display text-4xl mt-3">{products.length}</p>
-                <p className="text-xs text-white/60 mt-2">{activeProducts} visibles dans la boutique</p>
+                <p className="text-sm text-white/70">Chiffre d'affaires</p>
+                <p className="font-display text-3xl mt-3">{formatPrice(revenue)}</p>
+                <p className="text-xs text-white/60 mt-2">Commandes hors annulations</p>
               </div>
               <div className="bg-white rounded-2xl border border-[var(--color-line)] p-5">
-                <p className="text-sm text-[var(--color-muted)]">Catégories</p>
-                <p className="font-display text-4xl text-[var(--color-ink)] mt-3">{categories.length}</p>
-                <p className="text-xs text-[var(--color-muted)] mt-2">{categories.filter((category) => category.is_active).length} actives</p>
+                <p className="text-sm text-[var(--color-muted)]">Commandes</p>
+                <p className="font-display text-4xl text-[var(--color-ink)] mt-3">{orders.length}</p>
+                <p className="text-xs text-[var(--color-muted)] mt-2">{newOrders} nouvelle(s) à traiter</p>
               </div>
               <div className="bg-white rounded-2xl border border-[var(--color-line)] p-5">
-                <p className="text-sm text-[var(--color-muted)]">Demandes de devis</p>
-                <p className="font-display text-4xl text-[var(--color-ink)] mt-3">{quotes.length}</p>
-                <p className="text-xs text-[var(--color-muted)] mt-2">Dernières demandes reçues</p>
+                <p className="text-sm text-[var(--color-muted)]">Paiements encaissés</p>
+                <p className="font-display text-3xl text-[var(--color-ink)] mt-3">{formatPrice(paidRevenue)}</p>
+                <p className="text-xs text-[var(--color-muted)] mt-2">Commandes marquées payées</p>
               </div>
               <div className="bg-[var(--color-amber)] text-white rounded-2xl p-5">
-                <p className="text-sm text-white/80">Articles masqués</p>
-                <p className="font-display text-4xl mt-3">{products.length - activeProducts}</p>
-                <p className="text-xs text-white/75 mt-2">Articles non visibles sur le site</p>
+                <p className="text-sm text-white/80">Articles visibles</p>
+                <p className="font-display text-4xl mt-3">{activeProducts}</p>
+                <p className="text-xs text-white/75 mt-2">sur {products.length} article(s) au total</p>
               </div>
             </section>
             )}
@@ -152,30 +177,39 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-2xl border border-[var(--color-line)] p-6">
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h3 className="font-display text-xl text-[var(--color-ink)]">Activité récente</h3>
-                    <p className="text-sm text-[var(--color-muted)] mt-1">Les derniers articles ajoutés</p>
+                    <h3 className="font-display text-xl text-[var(--color-ink)]">Dernières commandes</h3>
+                    <p className="text-sm text-[var(--color-muted)] mt-1">Suivi des dernières ventes</p>
                   </div>
-                  <Link to="/admin/categories" className="text-sm font-semibold text-[var(--color-amber-dark)]">Catégories</Link>
+                  <Link to="/admin/orders" className="text-sm font-semibold text-[var(--color-amber-dark)]">Voir les commandes</Link>
                 </div>
                 <div className="space-y-3">
-                  {products.slice(0, 4).map((product) => (
-                    <div key={product.id} className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--color-paper)] overflow-hidden flex-shrink-0">
-                        {product.primary_image && <img src={resolveImageUrl(product.primary_image)} alt="" className="w-full h-full object-cover" />}
-                      </div>
+                  {orders.slice(0, 4).map((order) => (
+                    <div key={order.id} className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-[var(--color-paper)] flex items-center justify-center text-sm font-semibold text-[var(--color-amber-dark)]">#{order.id.slice(0, 4)}</div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate">{product.name}</p>
-                        <p className="text-xs text-[var(--color-muted)]">{product.category_name || 'Sans catégorie'}</p>
+                        <p className="font-medium truncate">{order.customer_name}</p>
+                        <p className="text-xs text-[var(--color-muted)]">{formatPrice(order.total, order.currency)}</p>
                       </div>
-                      <span className={`text-xs px-2 py-1 rounded-full ${product.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{product.is_active ? 'Visible' : 'Masqué'}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${order.status === 'nouvelle' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{order.status === 'nouvelle' ? 'Nouvelle' : order.status.replace('_', ' ')}</span>
                     </div>
                   ))}
-                  {products.length === 0 && <p className="text-sm text-[var(--color-muted)]">Aucun article ajouté.</p>}
+                  {orders.length === 0 && <p className="text-sm text-[var(--color-muted)]">Aucune commande pour le moment.</p>}
                 </div>
               </div>
             </section>}
 
-            {isArticleManagement && <div className="bg-white rounded-2xl border border-[var(--color-line)] overflow-hidden">
+            {isArticleManagement && <>
+            <div className="mb-4 flex justify-end">
+              <input
+                type="search"
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                placeholder="Rechercher par nom ou référence..."
+                aria-label="Rechercher un article"
+                className="w-full sm:w-80 border border-[var(--color-line)] rounded-lg px-4 py-2.5 text-sm"
+              />
+            </div>
+            <div className="bg-white rounded-2xl border border-[var(--color-line)] overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-[var(--color-paper)] text-left">
                 <tr>
@@ -189,7 +223,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((p) => (
+                {filteredProducts.map((p) => (
                   <tr key={p.id} className="border-t border-[var(--color-line)]">
                     <td className="px-4 py-3">
                       <div className="w-12 h-12 rounded-lg bg-[var(--color-paper)] overflow-hidden">
@@ -207,18 +241,18 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-3">
-                        <button onClick={() => { setEditingProduct(p); setShowForm(true); }} className="text-[var(--color-amber-dark)] hover:underline">Modifier</button>
+                        <button onClick={() => handleEdit(p)} className="text-[var(--color-amber-dark)] hover:underline">Modifier</button>
                         <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:underline">Supprimer</button>
                       </div>
                     </td>
                   </tr>
                 ))}
-                {products.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-10 text-center text-[var(--color-muted)]">Aucun article. Créez le premier !</td></tr>
+                {filteredProducts.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-10 text-center text-[var(--color-muted)]">Aucun article ne correspond à cette recherche.</td></tr>
                 )}
               </tbody>
             </table>
-            </div>}
+            </div></>}
           </>
         )}
         </main>

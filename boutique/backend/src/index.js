@@ -12,6 +12,7 @@ const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
 const quoteRoutes = require('./routes/quotes');
 const settingsRoutes = require('./routes/settings');
+const orderRoutes = require('./routes/orders');
 
 const app = express();
 const uploadsDir = path.resolve(__dirname, '../uploads');
@@ -57,6 +58,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

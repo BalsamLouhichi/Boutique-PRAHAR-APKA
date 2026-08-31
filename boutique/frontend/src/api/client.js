@@ -50,6 +50,7 @@ export const api = {
 
   // Admin
   getAdminProducts: () => request('/products/admin/all', { auth: true }),
+  getAdminProduct: (id) => request(`/products/admin/${id}`, { auth: true }),
   getAdminCategories: () => request('/categories/admin/all', { auth: true }),
   getAdminQuotes: () => request('/quotes', { auth: true }),
   createProduct: (payload) => request('/products', { method: 'POST', body: payload, auth: true }),
@@ -72,4 +73,12 @@ export const api = {
   updateCategory: (id, payload) => request(`/categories/${id}`, { method: 'PUT', body: payload, auth: true }),
   deleteCategory: (id) => request(`/categories/${id}`, { method: 'DELETE', auth: true }),
   updateSetting: (key, value) => request(`/settings/${key}`, { method: 'PUT', body: { value }, auth: true }),
+
+  // Commandes
+  createOrder: (payload) => request('/orders', { method: 'POST', body: payload }),
+  getOrder: (id) => request(`/orders/${id}`),
+  getOrders: (status = '') => request(`/orders${status ? `?status=${encodeURIComponent(status)}` : ''}`, { auth: true }),
+  getOrderItems: (id) => request(`/orders/admin/${id}/items`, { auth: true }),
+  updateOrderStatus: (id, status) => request(`/orders/${id}/status`, { method: 'PUT', body: { status }, auth: true }),
+  updateOrderPayment: (id, payment_status) => request(`/orders/${id}/payment`, { method: 'PUT', body: { payment_status }, auth: true }),
 };

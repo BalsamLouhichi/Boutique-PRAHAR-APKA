@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { api } from '../../api/client.js';
+import { useEffect, useRef, useState } from 'react';
+import { api, resolveImageUrl } from '../../api/client.js';
 
 function slugify(str) {
   return str
@@ -17,9 +17,11 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
     slug: product?.slug || '',
     description: product?.description || '',
     category_id: product?.category_id || (categories && categories[0]?.id) || '',
-    season: product?.season || 'toutes_saisons',
+    season: product?.season || 'ete',
     gender: product?.gender || 'unisexe',
-    min_order_qty: product?.min_order_qty || 12,
+    min_order_qty: product?.min_order_qty || 1,
+    price: product?.price ?? 0,
+    promo_price: product?.promo_price ?? '',
     colors: product?.colors?.join(', ') || '',
     sizes: product?.sizes?.join(', ') || '',
     material: product?.material || '',
@@ -27,8 +29,10 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
     is_featured: product?.is_featured || false,
     is_active: product?.is_active ?? true,
   });
-  const [files, setFiles] = useState(null);
+  const [files, setFiles] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
+  const [existingImages, setExistingImages] = useState(product?.images || []);
+  const fileInputRef = useRef(null);
   const [singleSize, setSingleSize] = useState(product?.sizes?.includes('Taille unique') || false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -40,22 +44,37 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
     }
   }, [categories]);
 
-  useEffect(() => {
-    return () => {
-      previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [previewUrls]);
-
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
   function handleFilesChange(e) {
     const nextFiles = [...(e.target.files || [])];
-    setFiles(nextFiles);
+    const availableSlots = 6 - existingImages.length - files.length;
+    if (nextFiles.length > availableSlots) {
+      setError(`Vous pouvez avoir 6 images au maximum. Il reste ${availableSlots} emplacement(s).`);
+      e.target.value = '';
+      return;
+    }
+    setError('');
+    setFiles((current) => [...current, ...nextFiles]);
+    setPreviewUrls((current) => [...current, ...nextFiles.map((file) => URL.createObjectURL(file))]);
+    e.target.value = '';
+  }
 
-    const nextPreviews = nextFiles.map((file) => URL.createObjectURL(file));
-    setPreviewUrls(nextPreviews);
+  function removePendingImage(index) {
+    URL.revokeObjectURL(previewUrls[index]);
+    setFiles((current) => current.filter((_, imageIndex) => imageIndex !== index));
+    setPreviewUrls((current) => current.filter((_, imageIndex) => imageIndex !== index));
+  }
+
+  async function removeExistingImage(imageId) {
+    try {
+      await api.deleteProductImage(imageId);
+      setExistingImages((current) => current.filter((image) => image.id !== imageId));
+    } catch (err) {
+      setError(err.message || 'Impossible de supprimer cette image.');
+    }
   }
 
   function handleSingleSizeToggle(checked) {
@@ -83,7 +102,7 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
         saved = await api.createProduct(payload);
       }
 
-      if (files && files.length > 0) {
+      if (files.length > 0) {
         await api.uploadProductImages(saved.id, files);
       }
 
@@ -131,6 +150,17 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Prix de vente (TRY) *</label>
+            <input required type="number" min="0.01" step="0.01" value={form.price} onChange={(e) => update('price', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Prix promo (TRY)</label>
+            <input type="number" min={0} step="0.01" value={form.promo_price} onChange={(e) => update('promo_price', e.target.value)} placeholder="Optionnel" className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
+          </div>
+        </div>
+
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium mb-1">Catégorie *</label>
@@ -141,11 +171,8 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
           <div>
             <label className="block text-sm font-medium mb-1">Saison</label>
             <select value={form.season} onChange={(e) => update('season', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm">
-              <option value="toutes_saisons">Toutes saisons</option>
               <option value="hiver">Hiver</option>
               <option value="ete">Été</option>
-              <option value="printemps">Printemps</option>
-              <option value="automne">Automne</option>
             </select>
           </div>
           <div>
@@ -194,27 +221,37 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Photos (jpeg/png/webp, 5 Mo max chacune)</label>
-          <div className="flex flex-col items-center justify-center">
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <label className="block text-sm font-medium">Photos de l'article</label>
+            <span className="text-xs text-[var(--color-muted)]">{existingImages.length + files.length}/6 images</span>
+          </div>
+          <div className="rounded-xl border border-dashed border-[var(--color-line)] p-4">
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
               multiple
               onChange={handleFilesChange}
-              className="w-full max-w-xl text-sm"
+              className="hidden"
             />
-
-            {previewUrls.length > 0 && (
-              <div className="mt-4 w-full max-w-xl">
-                <div className="grid grid-cols-3 gap-3 place-items-center">
-                  {previewUrls.map((url, index) => (
-                    <div key={`${url}-${index}`} className="w-full aspect-square rounded-xl border border-[var(--color-line)] bg-[var(--color-paper)] overflow-hidden shadow-sm">
-                      <img src={url} alt={`Aperçu ${index + 1}`} className="w-full h-full object-cover" />
-                    </div>
-                  ))}
+            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={existingImages.length + files.length >= 6} className="rounded-lg border border-[var(--color-ink)] px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40">+ Ajouter des images</button>
+            <p className="mt-2 text-xs text-[var(--color-muted)]">JPEG, PNG ou WebP — 5 Mo maximum par image.</p>
+            {(existingImages.length > 0 || previewUrls.length > 0) && <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {existingImages.map((image) => (
+                <div key={image.id} className="relative aspect-square overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-paper)]">
+                  <img src={resolveImageUrl(image.image_url)} alt="Photo enregistrée" className="h-full w-full object-cover" />
+                  <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">Enregistrée</span>
+                  <button type="button" onClick={() => removeExistingImage(image.id)} className="absolute top-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-lg leading-none shadow hover:bg-red-50 hover:text-red-600" aria-label="Supprimer cette image">×</button>
                 </div>
-              </div>
-            )}
+              ))}
+              {previewUrls.map((url, index) => (
+                <div key={url} className="relative aspect-square overflow-hidden rounded-xl border border-[var(--color-amber)] bg-[var(--color-paper)]">
+                  <img src={url} alt={`Nouvelle image ${index + 1}`} className="h-full w-full object-cover" />
+                  <span className="absolute bottom-1 left-1 rounded bg-[var(--color-amber)] px-1.5 py-0.5 text-[10px] text-white">À ajouter</span>
+                  <button type="button" onClick={() => removePendingImage(index)} className="absolute top-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-lg leading-none shadow hover:bg-red-50 hover:text-red-600" aria-label="Retirer cette nouvelle image">×</button>
+                </div>
+              ))}
+            </div>}
           </div>
         </div>
 

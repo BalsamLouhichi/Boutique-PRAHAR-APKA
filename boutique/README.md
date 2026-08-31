@@ -179,7 +179,7 @@ Les catégories (Casquettes, Bonnets, Cache-cols, Écharpes...) sont gérables d
 ## 6. Filtres disponibles côté client
 
 - **Catégorie** (dynamique, basée sur la table `categories`)
-- **Saison** : Hiver / Été / Printemps / Automne / Toutes saisons
+- **Saison** : Hiver / Été
 - **Genre** : Homme / Femme / Enfant / Unisexe
 - **Nouveautés uniquement**
 - **Recherche texte** (nom / description)

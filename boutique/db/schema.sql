@@ -45,8 +45,8 @@ CREATE TABLE products (
     category_id     INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
 
     -- Filtres demandés : saison, sexe/genre
-    season          VARCHAR(20) NOT NULL DEFAULT 'toutes_saisons'
-                        CHECK (season IN ('hiver','ete','printemps','automne','toutes_saisons')),
+    season          VARCHAR(20) NOT NULL DEFAULT 'ete'
+                        CHECK (season IN ('hiver','ete')),
     gender          VARCHAR(20) NOT NULL DEFAULT 'unisexe'
                         CHECK (gender IN ('homme','femme','enfant','unisexe')),
 

@@ -80,7 +80,7 @@ router.get('/', async (req, res) => {
     params.push(limit, offset);
     const result = await pool.query(
       `SELECT p.id, p.reference, p.name, p.slug, p.description, p.season, p.gender,
-              p.min_order_qty, p.colors, p.sizes, p.material,
+              p.min_order_qty, p.colors, p.sizes, p.material, p.price, p.promo_price,
               p.is_new, p.is_featured, c.name AS category_name, c.slug AS category_slug,
               (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id
                  ORDER BY pi.is_primary DESC, pi.created_at DESC, pi.display_order ASC LIMIT 1) AS primary_image
@@ -147,6 +147,27 @@ router.get('/admin/all', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Détail complet d'un produit pour l'édition, y compris toutes ses images.
+router.get('/admin/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const productResult = await pool.query(
+      `SELECT p.*, c.name AS category_name
+       FROM products p JOIN categories c ON c.id = p.category_id WHERE p.id = $1`,
+      [req.params.id]
+    );
+    if (productResult.rows.length === 0) return res.status(404).json({ error: 'Produit introuvable.' });
+
+    const imagesResult = await pool.query(
+      'SELECT id, image_url, alt_text, is_primary, display_order FROM product_images WHERE product_id = $1 ORDER BY display_order ASC, created_at ASC',
+      [req.params.id]
+    );
+    res.json({ ...productResult.rows[0], images: imagesResult.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+
 // Création produit
 router.post(
   '/',
@@ -155,8 +176,11 @@ router.post(
     body('name').trim().isLength({ min: 2, max: 200 }),
     body('slug').trim().isLength({ min: 2, max: 220 }),
     body('category_id').custom(isIntegerLike).withMessage('Catégorie invalide.'),
-    body('season').isIn(['hiver', 'ete', 'printemps', 'automne', 'toutes_saisons']),
+    body('season').isIn(['hiver', 'ete']),
     body('gender').isIn(['homme', 'femme', 'enfant', 'unisexe']),
+    body('price').isFloat({ gt: 0 }).withMessage('Le prix doit être supérieur à zéro.'),
+    body('promo_price').optional({ nullable: true, checkFalsy: true }).isFloat({ gt: 0 })
+      .custom((value, { req }) => Number(value) < Number(req.body.price)).withMessage('Le prix promo doit être inférieur au prix normal.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -164,19 +188,19 @@ router.post(
 
     const {
       reference, name, slug, description, category_id, season, gender,
-      min_order_qty, colors, sizes, material, is_new, is_featured,
+       min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured,
     } = req.body;
 
     try {
       const result = await pool.query(
         `INSERT INTO products
           (reference, name, slug, description, category_id, season, gender,
-           min_order_qty, colors, sizes, material, is_new, is_featured, created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+            min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
         [
           reference || null, name, slug, description || null, category_id, season, gender,
-          min_order_qty || 1, colors || [], sizes || [], material || null,
-          !!is_new, !!is_featured, req.admin.id,
+          min_order_qty || 1, colors || [], sizes || [], material || null, Number(price) || 0,
+          promo_price == null || promo_price === '' ? null : Number(promo_price), !!is_new, !!is_featured, req.admin.id,
         ]
       );
       res.status(201).json(result.rows[0]);
@@ -193,19 +217,28 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
   const { id } = req.params;
   const {
     reference, name, slug, description, category_id, season, gender,
-    min_order_qty, colors, sizes, material, is_new, is_featured, is_active,
+    min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, is_active,
   } = req.body;
+
+  if (!['hiver', 'ete'].includes(season)) {
+    return res.status(400).json({ error: 'La saison doit être hiver ou ete.' });
+  }
+
+  if (!(Number(price) > 0) || (promo_price != null && promo_price !== '' && !(Number(promo_price) > 0 && Number(promo_price) < Number(price)))) {
+    return res.status(400).json({ error: 'Le prix doit être supérieur à zéro et le prix promo doit être inférieur au prix normal.' });
+  }
 
   try {
     const result = await pool.query(
       `UPDATE products SET
         reference=$1, name=$2, slug=$3, description=$4, category_id=$5, season=$6, gender=$7,
-        min_order_qty=$8, colors=$9, sizes=$10, material=$11,
-        is_new=$12, is_featured=$13, is_active=$14
-       WHERE id=$15 RETURNING *`,
+        min_order_qty=$8, colors=$9, sizes=$10, material=$11, price=$12, promo_price=$13,
+        is_new=$14, is_featured=$15, is_active=$16
+       WHERE id=$17 RETURNING *`,
       [
         reference, name, slug, description, category_id, season, gender,
-        min_order_qty, colors, sizes, material,
+        min_order_qty, colors, sizes, material, Number(price) || 0,
+        promo_price == null || promo_price === '' ? null : Number(promo_price),
         !!is_new, !!is_featured, is_active !== false, id,
       ]
     );
@@ -244,26 +277,10 @@ router.post('/:id/images', authenticateAdmin, upload.array('images', 6), async (
       [id]
     );
 
-    if (files.length === 1 && existingImages.rows.length > 0) {
-      const existing = existingImages.rows[0];
-      const newUrl = `/uploads/${files[0].filename}`;
-
-      const result = await pool.query(
-        `UPDATE product_images
-         SET image_url = $2, alt_text = NULL, is_primary = TRUE, display_order = 0, created_at = now()
-         WHERE id = $1 RETURNING *`,
-        [existing.id, newUrl]
-      );
-
-      await pool.query(
-        'UPDATE product_images SET is_primary = FALSE WHERE product_id = $1 AND id <> $2',
-        [id, existing.id]
-      );
-
-      return res.status(200).json(result.rows);
+    const remainingSlots = 6 - existingImages.rows.length;
+    if (files.length > remainingSlots) {
+      return res.status(400).json({ error: `Vous pouvez ajouter ${remainingSlots} image(s) au maximum pour cet article.` });
     }
-
-    await pool.query('DELETE FROM product_images WHERE product_id = $1', [id]);
 
     const inserted = [];
     for (let i = 0; i < files.length; i++) {
@@ -271,7 +288,7 @@ router.post('/:id/images', authenticateAdmin, upload.array('images', 6), async (
       const result = await pool.query(
         `INSERT INTO product_images (product_id, image_url, is_primary, display_order)
          VALUES ($1,$2,$3,$4) RETURNING *`,
-        [id, url, i === 0, i]
+        [id, url, existingImages.rows.length === 0 && i === 0, existingImages.rows.length + i]
       );
       inserted.push(result.rows[0]);
     }

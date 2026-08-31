@@ -9,6 +9,10 @@ import Shop from './pages/Shop.jsx';
 import AdminLogin from './pages/AdminLogin.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminCategories from './pages/AdminCategories.jsx';
+import AdminOrders from './pages/AdminOrders.jsx';
+import Checkout from './pages/Checkout.jsx';
+import OrderConfirmation from './pages/OrderConfirmation.jsx';
+import ProductDetail from './pages/ProductDetail.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 function ScrollToTop() {
@@ -30,6 +34,9 @@ export default function App() {
         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/articles" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/categories" element={<ProtectedRoute><AdminCategories /></ProtectedRoute>} />
+        <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/commande-confirmee/:id" element={<OrderConfirmation />} />
         <Route
           path="*"
           element={
@@ -39,6 +46,7 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/boutique" element={<Shop />} />
+                  <Route path="/produit/:slug" element={<ProductDetail />} />
                 </Routes>
               </main>
               <Footer />

@@ -3,10 +3,8 @@ import { api } from '../api/client.js';
 
 const SEASONS = [
   { value: '', label: 'Toutes' },
-  { value: 'hiver', label: 'Hiver' },
-  { value: 'ete', label: 'Été' },
-  { value: 'printemps', label: 'Printemps' },
-  { value: 'automne', label: 'Automne' },
+  { value: 'hiver', label: 'Kış' },
+  { value: 'ete', label: 'Yaz' },
 ];
 const GENDERS = [
   { value: '', label: 'Tous' },

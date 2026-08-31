@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { effectivePrice } from '../utils/price.js';
 
 const CartContext = createContext(null);
 const STORAGE_KEY = 'boutique_cart_v1';
@@ -19,8 +20,12 @@ export function CartProvider({ children }) {
   }, [items]);
 
   function addItem(product, quantity, color, size) {
-    const minQty = product.min_order_qty || 1;
+    const minQty = 1;
     const qty = Math.max(quantity, minQty);
+    const primaryImage = product.primary_image
+      || product.images?.find((image) => image.is_primary)?.image_url
+      || product.images?.[0]?.image_url
+      || null;
 
     setItems((prev) => {
       const key = `${product.id}-${color || ''}-${size || ''}`;
@@ -35,8 +40,9 @@ export function CartProvider({ children }) {
           product_id: product.id,
           product_name: product.name,
           reference: product.reference || null,
-          image: product.primary_image,
+          image: primaryImage,
           min_order_qty: minQty,
+          unit_price: effectivePrice(product),
           quantity: qty,
           color: color || null,
           size: size || null,
@@ -61,10 +67,11 @@ export function CartProvider({ children }) {
   }
 
   const totalItems = items.reduce((sum, it) => sum + it.quantity, 0);
+  const subtotal = items.reduce((sum, it) => sum + (Number(it.unit_price) || 0) * it.quantity, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, updateQuantity, removeItem, clearCart, totalItems, isOpen, setIsOpen }}
+      value={{ items, addItem, updateQuantity, removeItem, clearCart, totalItems, subtotal, isOpen, setIsOpen }}
     >
       {children}
     </CartContext.Provider>
