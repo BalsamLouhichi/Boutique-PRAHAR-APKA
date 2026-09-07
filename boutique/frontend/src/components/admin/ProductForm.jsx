@@ -9,7 +9,7 @@ function slugify(str) {
     .replace(/(^-|-$)/g, '');
 }
 
-export default function ProductForm({ product, categories, onClose, onSaved }) {
+export default function ProductForm({ product, categories, saleType = 'detail', onClose, onSaved }) {
   const [localCategories, setLocalCategories] = useState(categories || []);
   const [form, setForm] = useState({
     reference: product?.reference || '',
@@ -17,16 +17,18 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
     slug: product?.slug || '',
     description: product?.description || '',
     category_id: product?.category_id || (categories && categories[0]?.id) || '',
+    sale_type: product?.sale_type || saleType,
     season: product?.season || 'ete',
     gender: product?.gender || 'unisexe',
     min_order_qty: product?.min_order_qty || 1,
-    price: product?.price ?? 0,
+    price: product?.price ?? '',
     promo_price: product?.promo_price ?? '',
     colors: product?.colors?.join(', ') || '',
     sizes: product?.sizes?.join(', ') || '',
     material: product?.material || '',
     is_new: product?.is_new || false,
     is_featured: product?.is_featured || false,
+    is_exclusive: product?.is_exclusive || false,
     is_active: product?.is_active ?? true,
   });
   const [files, setFiles] = useState([]);
@@ -36,6 +38,9 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
   const [singleSize, setSingleSize] = useState(product?.sizes?.includes('Taille unique') || false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  let formTitle = 'Nouvel article en détail';
+  if (product) formTitle = 'Modifier l\'article';
+  else if (form.sale_type === 'gros') formTitle = 'Nouvel article en gros';
 
   useEffect(() => {
     setLocalCategories(categories || []);
@@ -89,6 +94,8 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
     try {
       const payload = {
         ...form,
+        sale_type: form.sale_type,
+        is_exclusive: form.sale_type === 'gros' ? form.is_exclusive : false,
         category_id: parseInt(form.category_id),
         min_order_qty: parseInt(form.min_order_qty) || 1,
         colors: form.colors.split(',').map((s) => s.trim()).filter(Boolean),
@@ -117,7 +124,13 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center overflow-y-auto py-10">
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-2xl p-8 mx-4">
-        <h2 className="font-display text-2xl mb-6">{product ? 'Modifier l\'article' : 'Nouvel article'}</h2>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-amber-dark)]">{form.sale_type === 'gros' ? 'Catalogue professionnel' : 'Catalogue boutique'}</p>
+            <h2 className="font-display text-2xl">{formTitle}</h2>
+          </div>
+          <span className="rounded-full bg-[var(--color-paper)] px-3 py-1 text-xs font-semibold text-[var(--color-ink)]">{form.sale_type === 'gros' ? 'Vente en gros' : 'Vente au détail'}</span>
+        </div>
 
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{error}</p>}
 
@@ -150,7 +163,7 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        {form.sale_type === 'detail' ? <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium mb-1">Prix de vente (TRY) *</label>
             <input required type="number" min="0.01" step="0.01" value={form.price} onChange={(e) => update('price', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
@@ -159,7 +172,7 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
             <label className="block text-sm font-medium mb-1">Prix promo (TRY)</label>
             <input type="number" min={0} step="0.01" value={form.promo_price} onChange={(e) => update('promo_price', e.target.value)} placeholder="Optionnel" className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
           </div>
-        </div>
+        </div> : <div className="mb-4 rounded-xl border border-[var(--color-amber)]/30 bg-[var(--color-paper)] px-4 py-3 text-sm text-[var(--color-muted)]">Les articles en gros sont proposés sur devis. Aucun prix de vente n’est requis ici.</div>}
 
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
@@ -258,6 +271,7 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
         <div className="flex flex-wrap gap-6 mb-6">
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_new} onChange={(e) => update('is_new', e.target.checked)} /> Nouveauté</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_featured} onChange={(e) => update('is_featured', e.target.checked)} /> Mise en avant</label>
+          {form.sale_type === 'gros' && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_exclusive} onChange={(e) => update('is_exclusive', e.target.checked)} /> Exclusif vente en gros</label>}
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_active} onChange={(e) => update('is_active', e.target.checked)} /> Visible sur le site</label>
         </div>
 

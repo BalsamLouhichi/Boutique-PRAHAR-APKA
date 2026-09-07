@@ -44,6 +44,9 @@ CREATE TABLE products (
     description     TEXT,
     category_id     INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
 
+    sale_type       VARCHAR(20) NOT NULL DEFAULT 'detail'
+                        CHECK (sale_type IN ('detail','gros')),
+
     -- Filtres demandés : saison, sexe/genre
     season          VARCHAR(20) NOT NULL DEFAULT 'ete'
                         CHECK (season IN ('hiver','ete')),
@@ -68,6 +71,7 @@ CREATE TABLE products (
 );
 
 CREATE INDEX idx_products_category ON products(category_id);
+CREATE INDEX idx_products_sale_type ON products(sale_type);
 CREATE INDEX idx_products_season   ON products(season);
 CREATE INDEX idx_products_gender   ON products(gender);
 CREATE INDEX idx_products_active   ON products(is_active);

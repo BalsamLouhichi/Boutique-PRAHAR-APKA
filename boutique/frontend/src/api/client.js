@@ -81,4 +81,48 @@ export const api = {
   getOrderItems: (id) => request(`/orders/admin/${id}/items`, { auth: true }),
   updateOrderStatus: (id, status) => request(`/orders/${id}/status`, { method: 'PUT', body: { status }, auth: true }),
   updateOrderPayment: (id, payment_status) => request(`/orders/${id}/payment`, { method: 'PUT', body: { payment_status }, auth: true }),
+
+
+
+
+  // Vente en gros - Public
+wholesaleLogin: (email, password) =>
+  request('/wholesale/login', { method: 'POST', body: { email, password } }),
+
+wholesaleRegister: (payload) =>
+  request('/wholesale/register', { method: 'POST', body: payload }),
+
+// Vente en gros - Catalogue protégé (nécessite le token wholesale, pas admin_token)
+getWholesaleProducts: async (params = {}) => {
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v));
+  const token = localStorage.getItem('wholesale_token');
+  const res = await fetch(`${BASE_URL}/api/wholesale/products?${qs.toString()}`, {
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  return data;
+},
+
+wholesaleQuote: async (payload) => {
+  const token = localStorage.getItem('wholesale_token');
+  const res = await fetch(`${BASE_URL}/api/wholesale/quote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  return data;
+},
+
+// Vente en gros - Admin (utilise le admin_token existant)
+getWholesaleAccounts: () => request('/wholesale/admin/accounts', { auth: true }),
+
+updateWholesaleExclusiveAccess: (id, can_view_exclusive) =>
+  request(`/wholesale/admin/accounts/${id}/exclusive-access`, { method: 'PUT', body: { can_view_exclusive }, auth: true }),
+
+updateWholesaleAccountActive: (id, is_active) =>
+  request(`/wholesale/admin/accounts/${id}/active`, { method: 'PUT', body: { is_active }, auth: true }),
+
 };

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import ProductCard from '../components/ProductCard.jsx';
+import WholesaleBanner from '../components/WholesaleBanner.jsx';
 
 const galleryImages = Object.values(import.meta.glob('../assets/gallery/*.{jpg,jpeg,png,webp}', {
   eager: true,
@@ -122,6 +123,8 @@ export default function Home() {
         </div>
         <div className="rib-divider" />
       </section>
+
+      <WholesaleBanner />
 
       {/* CHIFFRES / RÉASSURANCE */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 grid sm:grid-cols-3 gap-6">

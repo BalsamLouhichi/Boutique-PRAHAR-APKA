@@ -14,8 +14,12 @@ const quoteRoutes = require('./routes/quotes');
 const settingsRoutes = require('./routes/settings');
 const orderRoutes = require('./routes/orders');
 
+const wholesaleRoutes = require('./routes/wholesale');
+const wholesaleAdminRoutes = require('./routes/wholesaleAdmin');
+
 const app = express();
 const uploadsDir = path.resolve(__dirname, '../uploads');
+const legacyUploadsDir = path.resolve(__dirname, '../../uploads');
 fs.mkdirSync(uploadsDir, { recursive: true });
 
 // --- Sécurité de base ---
@@ -51,6 +55,7 @@ app.use(rateLimit({
 
 // Fichiers uploadés (images produits) servis statiquement
 app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', express.static(legacyUploadsDir));
 
 // --- Routes API ---
 app.use('/api/auth', authRoutes);
@@ -59,6 +64,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/wholesale', wholesaleRoutes);
+app.use('/api/wholesale/admin', wholesaleAdminRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

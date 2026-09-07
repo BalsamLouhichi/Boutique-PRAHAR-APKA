@@ -70,6 +70,7 @@ export default function AdminOrders() {
           <Link to="/admin/articles" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">Gestion des articles</Link>
           <Link to="/admin/categories" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">Catégories</Link>
           <Link to="/admin/orders" className="flex items-center justify-between rounded-xl px-3 py-2.5 bg-white/10 text-white font-medium transition-colors">Commandes</Link>
+          <Link to="/admin/comptes-gros" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">Comptes grossistes</Link>
         </nav>
         <div className="mt-10 pt-6 border-t border-white/10">
           <button onClick={handleLogout} className="text-sm text-white/80 hover:text-white transition-colors">Déconnexion</button>

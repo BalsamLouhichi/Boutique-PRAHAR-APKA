@@ -127,6 +127,9 @@ export default function AdminCategories() {
           <Link to="/admin/orders" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
             <span>Commandes</span>
           </Link>
+          <Link to="/admin/comptes-gros" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
+            <span>Comptes grossistes</span>
+          </Link>
           <button
             onClick={openCreateModal}
             className="w-full text-left rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors"

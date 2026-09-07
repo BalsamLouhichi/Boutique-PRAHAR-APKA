@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 20, 50);
   const offset = (page - 1) * limit;
 
-  const conditions = ['p.is_active = TRUE'];
+  const conditions = ['p.is_active = TRUE', "p.sale_type = 'detail'", 'p.is_exclusive = FALSE'];
   const params = [];
 
   if (category) {
@@ -79,7 +79,7 @@ router.get('/', async (req, res) => {
 
     params.push(limit, offset);
     const result = await pool.query(
-      `SELECT p.id, p.reference, p.name, p.slug, p.description, p.season, p.gender,
+      `SELECT p.id, p.reference, p.name, p.slug, p.description, p.season, p.gender, p.sale_type,
               p.min_order_qty, p.colors, p.sizes, p.material, p.price, p.promo_price,
               p.is_new, p.is_featured, c.name AS category_name, c.slug AS category_slug,
               (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id
@@ -108,7 +108,7 @@ router.get('/:slug', async (req, res) => {
     const result = await pool.query(
       `SELECT p.*, c.name AS category_name, c.slug AS category_slug
        FROM products p JOIN categories c ON c.id = p.category_id
-       WHERE p.slug = $1 AND p.is_active = TRUE`,
+      WHERE p.slug = $1 AND p.is_active = TRUE AND p.sale_type = 'detail'`,
       [req.params.slug]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Produit introuvable.' });
@@ -178,29 +178,31 @@ router.post(
     body('category_id').custom(isIntegerLike).withMessage('Catégorie invalide.'),
     body('season').isIn(['hiver', 'ete']),
     body('gender').isIn(['homme', 'femme', 'enfant', 'unisexe']),
-    body('price').isFloat({ gt: 0 }).withMessage('Le prix doit être supérieur à zéro.'),
+    body('sale_type').optional().isIn(['detail', 'gros']).withMessage('Type de vente invalide.'),
+    body('price').custom((value, { req }) => req.body.sale_type === 'gros' || Number(value) > 0)
+      .withMessage('Le prix doit être supérieur à zéro pour un article en détail.'),
     body('promo_price').optional({ nullable: true, checkFalsy: true }).isFloat({ gt: 0 })
-      .custom((value, { req }) => Number(value) < Number(req.body.price)).withMessage('Le prix promo doit être inférieur au prix normal.'),
+      .custom((value, { req }) => req.body.sale_type === 'gros' || Number(value) < Number(req.body.price)).withMessage('Le prix promo doit être inférieur au prix normal.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const {
-      reference, name, slug, description, category_id, season, gender,
-       min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured,
+      reference, name, slug, description, category_id, season, gender, sale_type,
+        min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive,
     } = req.body;
 
     try {
       const result = await pool.query(
         `INSERT INTO products
-          (reference, name, slug, description, category_id, season, gender,
-            min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
+          (reference, name, slug, description, category_id, season, gender, sale_type,
+            min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive, created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
         [
-          reference || null, name, slug, description || null, category_id, season, gender,
+          reference || null, name, slug, description || null, category_id, season, gender, sale_type || 'detail',
           min_order_qty || 1, colors || [], sizes || [], material || null, Number(price) || 0,
-          promo_price == null || promo_price === '' ? null : Number(promo_price), !!is_new, !!is_featured, req.admin.id,
+           sale_type === 'gros' || promo_price == null || promo_price === '' ? null : Number(promo_price), !!is_new, !!is_featured, !!is_exclusive, req.admin.id,
         ]
       );
       res.status(201).json(result.rows[0]);
@@ -216,30 +218,33 @@ router.post(
 router.put('/:id', authenticateAdmin, async (req, res) => {
   const { id } = req.params;
   const {
-    reference, name, slug, description, category_id, season, gender,
-    min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, is_active,
+    reference, name, slug, description, category_id, season, gender, sale_type,
+    min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive, is_active,
   } = req.body;
 
   if (!['hiver', 'ete'].includes(season)) {
     return res.status(400).json({ error: 'La saison doit être hiver ou ete.' });
   }
 
-  if (!(Number(price) > 0) || (promo_price != null && promo_price !== '' && !(Number(promo_price) > 0 && Number(promo_price) < Number(price)))) {
+  if (!['detail', 'gros'].includes(sale_type)) {
+    return res.status(400).json({ error: 'Le type de vente est invalide.' });
+  }
+  if (sale_type === 'detail' && (!(Number(price) > 0) || (promo_price != null && promo_price !== '' && !(Number(promo_price) > 0 && Number(promo_price) < Number(price))))) {
     return res.status(400).json({ error: 'Le prix doit être supérieur à zéro et le prix promo doit être inférieur au prix normal.' });
   }
 
   try {
     const result = await pool.query(
       `UPDATE products SET
-        reference=$1, name=$2, slug=$3, description=$4, category_id=$5, season=$6, gender=$7,
-        min_order_qty=$8, colors=$9, sizes=$10, material=$11, price=$12, promo_price=$13,
-        is_new=$14, is_featured=$15, is_active=$16
-       WHERE id=$17 RETURNING *`,
+        reference=$1, name=$2, slug=$3, description=$4, category_id=$5, season=$6, gender=$7, sale_type=$8,
+        min_order_qty=$9, colors=$10, sizes=$11, material=$12, price=$13, promo_price=$14,
+        is_new=$15, is_featured=$16, is_exclusive=$17, is_active=$18
+             WHERE id=$19 RETURNING *`,
       [
-        reference, name, slug, description, category_id, season, gender,
+        reference, name, slug, description, category_id, season, gender, sale_type,
         min_order_qty, colors, sizes, material, Number(price) || 0,
-        promo_price == null || promo_price === '' ? null : Number(promo_price),
-        !!is_new, !!is_featured, is_active !== false, id,
+        sale_type === 'gros' || promo_price == null || promo_price === '' ? null : Number(promo_price),
+        !!is_new, !!is_featured, !!is_exclusive, is_active !== false, id,
       ]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Produit introuvable.' });

@@ -30,8 +30,17 @@ export default function Navbar() {
         <nav className="hidden md:flex items-center gap-8">
           <Link to="/" className={linkClass('/')}>Accueil</Link>
           <Link to="/boutique" className={linkClass('/boutique')}>Catalogue</Link>
+          <Link to="/gros" className={linkClass('/gros')}>Acheter en gros</Link>
           <a href="/#a-propos" onClick={goToAbout} className="text-sm font-medium text-[var(--color-ink)] hover:text-[var(--color-amber-dark)]">À propos</a>
         </nav>
+
+        
+        <Link
+          to="/gros"
+          className="hidden sm:inline-block bg-[var(--color-ink)] text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[var(--color-ink-light)] transition-colors"
+        >
+          Acheter en gros
+        </Link>
 
         <button
           onClick={() => setIsOpen(true)}

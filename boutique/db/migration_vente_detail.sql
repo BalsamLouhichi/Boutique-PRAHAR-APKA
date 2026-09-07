@@ -6,6 +6,16 @@
 -- ---------------------------------------------------------------
 -- 1. Ajouter le prix et la promo aux produits
 -- ---------------------------------------------------------------
+ALTER TABLE products ADD COLUMN IF NOT EXISTS sale_type VARCHAR(20) NOT NULL DEFAULT 'detail';
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_products_sale_type') THEN
+    ALTER TABLE products ADD CONSTRAINT chk_products_sale_type
+      CHECK (sale_type IN ('detail', 'gros'));
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_products_sale_type ON products(sale_type);
+
 ALTER TABLE products ADD COLUMN IF NOT EXISTS price NUMERIC(10,2) NOT NULL DEFAULT 0;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_price NUMERIC(10,2);
 DO $$

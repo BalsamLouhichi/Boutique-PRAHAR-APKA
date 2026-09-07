@@ -1,8 +1,30 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart,
+  ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from 'recharts';
 import { api, resolveImageUrl } from '../api/client.js';
 import ProductForm from '../components/admin/ProductForm.jsx';
 import { formatPrice } from '../utils/price.js';
+
+const AMBER = '#D98E3F';
+const SAGE = '#4E6E58';
+const MUTED = '#9CA3AF';
+const STATUS_LABELS = {
+  nouvelle: 'Nouvelle',
+  en_preparation: 'En préparation',
+  expediee: 'Expédiée',
+  livree: 'Livrée',
+  annulee: 'Annulée',
+};
+const STATUS_COLORS = {
+  nouvelle: AMBER,
+  en_preparation: '#6B8CAE',
+  expediee: SAGE,
+  livree: '#1B2A4A',
+  annulee: '#E5484D',
+};
 
 export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
@@ -14,7 +36,9 @@ export default function AdminDashboard() {
   const [productSearch, setProductSearch] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isArticleManagement = location.pathname === '/admin/articles';
+  const activeSaleType = searchParams.get('type') === 'gros' ? 'gros' : 'detail';
 
   function loadData() {
     setLoading(true);
@@ -64,11 +88,44 @@ export default function AdminDashboard() {
   const paidRevenue = orders.filter((order) => order.payment_status === 'paid').reduce((sum, order) => sum + Number(order.total || 0), 0);
   const newOrders = orders.filter((order) => order.status === 'nouvelle').length;
   const normalizedProductSearch = productSearch.trim().toLocaleLowerCase();
+  const productsBySaleType = products.filter((product) => (product.sale_type || 'detail') === activeSaleType);
   const filteredProducts = normalizedProductSearch
-    ? products.filter((product) => [product.name, product.reference]
+    ? productsBySaleType.filter((product) => [product.name, product.reference]
       .filter(Boolean)
       .some((value) => value.toLocaleLowerCase().includes(normalizedProductSearch)))
-    : products;
+    : productsBySaleType;
+  const revenueByDay = useMemo(() => {
+    const days = [];
+    const today = new Date();
+
+    for (let index = 13; index >= 0; index -= 1) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - index);
+      days.push({
+        date: date.toISOString().slice(0, 10),
+        label: date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+        total: 0,
+      });
+    }
+
+    const daysByDate = Object.fromEntries(days.map((day) => [day.date, day]));
+    orders.filter((order) => order.status !== 'annulee').forEach((order) => {
+      const date = order.created_at?.slice(0, 10);
+      if (daysByDate[date]) daysByDate[date].total += Number(order.total || 0);
+    });
+
+    return days;
+  }, [orders]);
+  const ordersByStatus = useMemo(() => {
+    const counts = {};
+    orders.forEach((order) => { counts[order.status] = (counts[order.status] || 0) + 1; });
+
+    return Object.entries(counts).map(([status, value]) => ({
+      name: STATUS_LABELS[status] || status,
+      value,
+      color: STATUS_COLORS[status] || MUTED,
+    }));
+  }, [orders]);
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)] flex">
@@ -90,6 +147,9 @@ export default function AdminDashboard() {
           </Link>
           <Link to="/admin/orders" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
             <span>Commandes</span>
+          </Link>
+          <Link to="/admin/comptes-gros" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
+            <span>Comptes grossistes</span>
           </Link>
           <button
             onClick={() => { setEditingProduct(null); setShowForm(true); }}
@@ -158,6 +218,40 @@ export default function AdminDashboard() {
             </section>
             )}
 
+            {!isArticleManagement && <section className="grid lg:grid-cols-3 gap-6 mb-8">
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-[var(--color-line)] p-6">
+                <h3 className="font-display text-xl text-[var(--color-ink)]">Chiffre d'affaires (14 derniers jours)</h3>
+                <p className="text-sm text-[var(--color-muted)] mt-1 mb-4">Total des commandes, hors annulations</p>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={revenueByDay} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E4E2DC" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: MUTED }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: MUTED }} axisLine={false} tickLine={false} />
+                    <Tooltip formatter={(value) => formatPrice(value)} contentStyle={{ borderRadius: 12, border: '1px solid #E4E2DC', fontSize: 12 }} />
+                    <Line type="monotone" dataKey="total" stroke={AMBER} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-[var(--color-line)] p-6">
+                <h3 className="font-display text-xl text-[var(--color-ink)]">Statuts des commandes</h3>
+                <p className="text-sm text-[var(--color-muted)] mt-1 mb-4">Répartition actuelle</p>
+                {ordersByStatus.length === 0 ? (
+                  <p className="py-16 text-center text-sm text-[var(--color-muted)]">Aucune commande pour le moment.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie data={ordersByStatus} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={3}>
+                        {ordersByStatus.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: 12, border: '1px solid #E4E2DC', fontSize: 12 }} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </section>}
+
             {!isArticleManagement && <section className="grid grid-cols-2 gap-6 mb-8">
               <div className="bg-white rounded-2xl border border-[var(--color-line)] p-6">
                 <div className="flex items-center justify-between mb-5">
@@ -199,7 +293,22 @@ export default function AdminDashboard() {
             </section>}
 
             {isArticleManagement && <>
-            <div className="mb-4 flex justify-end">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="inline-flex rounded-xl border border-[var(--color-line)] bg-white p-1" role="tablist" aria-label="Type d'article">
+                {['detail', 'gros'].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeSaleType === type}
+                    onClick={() => setSearchParams({ type })}
+                    className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeSaleType === type ? 'bg-[var(--color-ink)] text-white' : 'text-[var(--color-muted)] hover:text-[var(--color-ink)]'}`}
+                  >
+                    {type === 'detail' ? 'Articles en détail' : 'Articles en gros'}
+                    <span className="ml-2 text-xs opacity-70">{products.filter((product) => (product.sale_type || 'detail') === type).length}</span>
+                  </button>
+                ))}
+              </div>
               <input
                 type="search"
                 value={productSearch}
@@ -218,6 +327,7 @@ export default function AdminDashboard() {
                   <th className="px-4 py-3 font-semibold">Catégorie</th>
                   <th className="px-4 py-3 font-semibold">Saison</th>
                   <th className="px-4 py-3 font-semibold">Genre</th>
+                  <th className="px-4 py-3 font-semibold">Canal</th>
                   <th className="px-4 py-3 font-semibold">Statut</th>
                   <th className="px-4 py-3 font-semibold">Actions</th>
                 </tr>
@@ -234,6 +344,7 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3">{p.category_name}</td>
                     <td className="px-4 py-3">{p.season}</td>
                     <td className="px-4 py-3">{p.gender}</td>
+                    <td className="px-4 py-3"><span className="rounded-full bg-[var(--color-paper)] px-2 py-1 text-xs font-medium">{p.sale_type === 'gros' ? 'Gros' : 'Détail'}</span></td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                         {p.is_active ? 'Visible' : 'Masqué'}
@@ -248,7 +359,7 @@ export default function AdminDashboard() {
                   </tr>
                 ))}
                 {filteredProducts.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-10 text-center text-[var(--color-muted)]">Aucun article ne correspond à cette recherche.</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-10 text-center text-[var(--color-muted)]">Aucun article ne correspond à cette recherche.</td></tr>
                 )}
               </tbody>
             </table>
@@ -262,6 +373,7 @@ export default function AdminDashboard() {
         <ProductForm
           product={editingProduct}
           categories={categories}
+          saleType={editingProduct?.sale_type || activeSaleType}
           onClose={() => setShowForm(false)}
           onSaved={() => { setShowForm(false); loadData(); }}
         />
