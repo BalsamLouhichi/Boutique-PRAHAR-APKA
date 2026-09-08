@@ -163,6 +163,32 @@ Le site est alors disponible sur `http://localhost:5173`.
 
 ---
 
+## 4bis. Stockage des images (déploiement serverless / Vercel)
+
+En local et avec Docker, les photos d'articles sont écrites dans `backend/uploads`
+et servies par l'API. Sur un hébergement **serverless** (Vercel, etc.) le système de
+fichiers est éphémère et en lecture seule : ces fichiers disparaissent et
+n'apparaissent jamais sur le site.
+
+Solution : **Vercel Blob**.
+
+1. Dans le dashboard Vercel du projet **backend** : `Storage` → `Create` → `Blob`,
+   puis `Connect Project`. Vercel injecte alors `BLOB_READ_WRITE_TOKEN`
+   automatiquement dans les variables d'environnement.
+2. Redéployer le backend.
+3. Migrer les images déjà présentes en base (une seule fois), depuis votre machine
+   avec le `.env` du backend rempli (`BLOB_READ_WRITE_TOKEN` + accès `DB_*` de prod) :
+   ```bash
+   cd backend
+   npm run migrate-images -- --dry-run   # vérification
+   npm run migrate-images                # migration réelle
+   ```
+
+Sans `BLOB_READ_WRITE_TOKEN`, le code retombe automatiquement sur le stockage
+disque local — rien à changer pour le développement.
+
+---
+
 ## 5. Gestion des articles (espace admin)
 
 Depuis `/admin`, vous pouvez :

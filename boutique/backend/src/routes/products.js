@@ -1,26 +1,18 @@
 const express = require('express');
-const path = require('path');
-const crypto = require('crypto');
 const multer = require('multer');
 const { body, validationResult } = require('express-validator');
 const pool = require('../config/db');
 const { authenticateAdmin } = require('../middleware/auth');
+const { saveImage, deleteImage } = require('../lib/storage');
 
 const router = express.Router();
 
 // ---- Upload d'images sécurisé ----
+// Les fichiers sont gardés en mémoire puis poussés vers le stockage
+// (Vercel Blob en prod, disque local en dev) via src/lib/storage.js.
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
-const storage = multer.diskStorage({
-  // backend/src/routes -> ../../uploads = backend/uploads (2 niveaux, pas 3)
-  destination: (req, file, cb) => cb(null, path.resolve(__dirname, '../../uploads')),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const safeName = crypto.randomBytes(16).toString('hex') + ext;
-    cb(null, safeName);
-  },
-});
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 6 },
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_MIME.includes(file.mimetype)) {
@@ -289,7 +281,7 @@ router.post('/:id/images', authenticateAdmin, upload.array('images', 6), async (
 
     const inserted = [];
     for (let i = 0; i < files.length; i++) {
-      const url = `/uploads/${files[i].filename}`;
+      const url = await saveImage(files[i]);
       const result = await pool.query(
         `INSERT INTO product_images (product_id, image_url, is_primary, display_order)
          VALUES ($1,$2,$3,$4) RETURNING *`,
@@ -307,11 +299,12 @@ router.post('/:id/images', authenticateAdmin, upload.array('images', 6), async (
 // Suppression d'une image
 router.delete('/images/:imageId', authenticateAdmin, async (req, res) => {
   try {
-    const imageResult = await pool.query('SELECT product_id, is_primary FROM product_images WHERE id = $1', [req.params.imageId]);
+    const imageResult = await pool.query('SELECT product_id, is_primary, image_url FROM product_images WHERE id = $1', [req.params.imageId]);
     if (imageResult.rows.length === 0) return res.status(404).json({ error: 'Image introuvable.' });
 
-    const { product_id, is_primary } = imageResult.rows[0];
+    const { product_id, is_primary, image_url } = imageResult.rows[0];
     await pool.query('DELETE FROM product_images WHERE id = $1', [req.params.imageId]);
+    await deleteImage(image_url);
 
     if (is_primary) {
       const fallback = await pool.query(
