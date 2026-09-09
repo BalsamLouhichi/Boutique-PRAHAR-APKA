@@ -304,22 +304,34 @@ router.post('/:id/images', authenticateAdmin, upload.array('images', 6), async (
       return res.status(400).json({ error: `Vous pouvez ajouter ${remainingSlots} image(s) au maximum pour cet article.` });
     }
 
+    // L'URL publique dépend de l'id auto-généré : on insère puis on met à jour
+    // image_url. (Un CTE « INSERT ... puis UPDATE » ne marche pas : le UPDATE
+    // ne voit pas la ligne insérée dans le même snapshot.)
+    const client = await pool.connect();
     const inserted = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const result = await pool.query(
-        `WITH ins AS (
-           INSERT INTO product_images (product_id, image_url, data, content_type, is_primary, display_order)
-           VALUES ($1, 'pending', $2, $3, $4, $5)
-           RETURNING id
-         )
-         UPDATE product_images p
-            SET image_url = '/api/products/images/' || p.id
-           FROM ins WHERE p.id = ins.id
-         RETURNING p.id, p.product_id, p.image_url, p.alt_text, p.is_primary, p.display_order, p.created_at`,
-        [id, file.buffer, file.mimetype, existingImages.rows.length === 0 && i === 0, existingImages.rows.length + i]
-      );
-      inserted.push(result.rows[0]);
+    try {
+      await client.query('BEGIN');
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const ins = await client.query(
+          `INSERT INTO product_images (product_id, image_url, data, content_type, is_primary, display_order)
+           VALUES ($1, 'pending', $2, $3, $4, $5) RETURNING id`,
+          [id, file.buffer, file.mimetype, existingImages.rows.length === 0 && i === 0, existingImages.rows.length + i]
+        );
+        const imageId = ins.rows[0].id;
+        const upd = await client.query(
+          `UPDATE product_images SET image_url = $1 WHERE id = $2
+           RETURNING id, product_id, image_url, alt_text, is_primary, display_order, created_at`,
+          [`/api/products/images/${imageId}`, imageId]
+        );
+        inserted.push(upd.rows[0]);
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
     res.status(201).json(inserted);
   } catch (err) {

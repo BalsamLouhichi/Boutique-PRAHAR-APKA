@@ -7,3 +7,15 @@
 ALTER TABLE product_images
   ADD COLUMN IF NOT EXISTS data BYTEA,
   ADD COLUMN IF NOT EXISTS content_type VARCHAR(100);
+
+-- Répare les lignes créées avant le correctif d'upload : image_url était resté
+-- à la valeur temporaire 'pending'. Celles qui ont bien un binaire stocké
+-- sont recâblées vers la route de service.
+UPDATE product_images
+   SET image_url = '/api/products/images/' || id
+ WHERE image_url = 'pending' AND data IS NOT NULL;
+
+-- Nettoie les lignes 'pending' sans binaire (upload échoué) : l'article
+-- réapparaîtra sans photo, à ré-uploader depuis l'admin.
+DELETE FROM product_images
+ WHERE image_url = 'pending' AND data IS NULL;
