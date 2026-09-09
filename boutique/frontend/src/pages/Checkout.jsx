@@ -83,37 +83,37 @@ export default function Checkout() {
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Nom complet *</label>
-            <input required value={form.customer_name} onChange={(e) => update('customer_name', e.target.value)}
+            <input required name="name" autoComplete="name" value={form.customer_name} onChange={(e) => update('customer_name', e.target.value)}
               className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Téléphone *</label>
-            <input required type="tel" value={form.customer_phone} onChange={(e) => update('customer_phone', e.target.value)}
+            <input required type="tel" name="tel" autoComplete="tel" value={form.customer_phone} onChange={(e) => update('customer_phone', e.target.value)}
               className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Email (optionnel)</label>
-          <input type="email" value={form.customer_email} onChange={(e) => update('customer_email', e.target.value)}
+          <input type="email" name="email" autoComplete="email" value={form.customer_email} onChange={(e) => update('customer_email', e.target.value)}
             className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Adresse de livraison *</label>
-          <textarea required rows={2} value={form.shipping_address} onChange={(e) => update('shipping_address', e.target.value)}
+          <textarea required rows={2} name="street-address" autoComplete="street-address" value={form.shipping_address} onChange={(e) => update('shipping_address', e.target.value)}
             className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Ville *</label>
-            <input required value={form.shipping_city} onChange={(e) => update('shipping_city', e.target.value)}
+            <input required name="address-level2" autoComplete="address-level2" value={form.shipping_city} onChange={(e) => update('shipping_city', e.target.value)}
               className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Code postal</label>
-            <input value={form.shipping_postal_code} onChange={(e) => update('shipping_postal_code', e.target.value)}
+            <input name="postal-code" autoComplete="postal-code" inputMode="numeric" value={form.shipping_postal_code} onChange={(e) => update('shipping_postal_code', e.target.value)}
               className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
           </div>
         </div>

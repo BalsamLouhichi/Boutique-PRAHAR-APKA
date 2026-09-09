@@ -79,12 +79,12 @@ export default function WholesaleAuth() {
             {loginError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{loginError}</p>}
             <div>
               <label className="block text-sm font-medium mb-1">Email professionnel</label>
-              <input required type="email" value={loginForm.email} onChange={(e) => setLoginForm((f) => ({ ...f, email: e.target.value }))}
+              <input required type="email" name="email" autoComplete="username" value={loginForm.email} onChange={(e) => setLoginForm((f) => ({ ...f, email: e.target.value }))}
                 className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Mot de passe</label>
-              <input required type="password" value={loginForm.password} onChange={(e) => setLoginForm((f) => ({ ...f, password: e.target.value }))}
+              <input required type="password" name="password" autoComplete="current-password" value={loginForm.password} onChange={(e) => setLoginForm((f) => ({ ...f, password: e.target.value }))}
                 className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
             </div>
             <button type="submit" disabled={loginLoading}
@@ -100,30 +100,30 @@ export default function WholesaleAuth() {
           </div>
         ) : (
           <form onSubmit={handleRegister} className="space-y-4">
-            {regError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{regError}</p>}
+            {regError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 whitespace-pre-line">{regError}</p>}
             <div>
               <label className="block text-sm font-medium mb-1">Nom de l'entreprise / boutique</label>
-              <input required value={regForm.company_name} onChange={(e) => updateReg('company_name', e.target.value)}
+              <input required name="organization" autoComplete="organization" value={regForm.company_name} onChange={(e) => updateReg('company_name', e.target.value)}
                 className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Nom du contact</label>
-              <input required value={regForm.contact_name} onChange={(e) => updateReg('contact_name', e.target.value)}
+              <input required name="name" autoComplete="name" value={regForm.contact_name} onChange={(e) => updateReg('contact_name', e.target.value)}
                 className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Email professionnel</label>
-              <input required type="email" value={regForm.email} onChange={(e) => updateReg('email', e.target.value)}
+              <input required type="email" name="email" autoComplete="email" value={regForm.email} onChange={(e) => updateReg('email', e.target.value)}
                 className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Téléphone</label>
-              <input required type="tel" value={regForm.phone} onChange={(e) => updateReg('phone', e.target.value)}
+              <input required type="tel" name="tel" autoComplete="tel" value={regForm.phone} onChange={(e) => updateReg('phone', e.target.value)}
                 className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Mot de passe (min. 8 caractères)</label>
-              <input required type="password" minLength={8} value={regForm.password} onChange={(e) => updateReg('password', e.target.value)}
+              <input required type="password" name="new-password" autoComplete="new-password" minLength={8} value={regForm.password} onChange={(e) => updateReg('password', e.target.value)}
                 className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
             </div>
             <p className="text-xs text-[var(--color-muted)]">
