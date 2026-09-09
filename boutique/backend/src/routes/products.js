@@ -7,8 +7,16 @@ const { authenticateAdmin } = require('../middleware/auth');
 const router = express.Router();
 
 // ---- Upload d'images sécurisé ----
-// Les fichiers sont gardés en mémoire puis stockés en base (colonne bytea).
-// L'image est ensuite servie par GET /api/products/images/:id.
+// Les fichiers sont gardés en mémoire puis stockés en base (colonne bytea),
+// et servis par GET /api/products/images/:id.
+//
+// Pourquoi pas le disque ni Vercel Blob :
+//  - disque (multer.diskStorage) : le FS de Vercel est éphémère/lecture seule,
+//    les fichiers disparaissent et renvoient 404.
+//  - Vercel Blob : fonctionne mais impose un service + un jeton à configurer.
+// Le catalogue est petit (quelques dizaines d'images de quelques Mo) : les
+// mettre dans PostgreSQL/Neon évite toute dépendance externe. AUCUNE variable
+// BLOB_* n'est utilisée par le code — le store Vercel Blob peut être supprimé.
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 const upload = multer({
   storage: multer.memoryStorage(),

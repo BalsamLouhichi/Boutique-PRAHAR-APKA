@@ -190,6 +190,20 @@ Si la base contient déjà des articles avec des images en `/uploads/...` :
 
 Les fichiers sources se trouvent dans `boutique/uploads/` (versionnés dans le dépôt).
 
+### Supprimer l'ancien store Vercel Blob (si créé)
+
+Une version antérieure utilisait Vercel Blob. Le code ne lit plus **aucune**
+variable `BLOB_*`. Pour faire le ménage :
+
+1. [vercel.com](https://vercel.com) → onglet **Storage** → ouvrir le store (`boutique-images`).
+2. Onglet **Settings** → tout en bas, **Delete Store** → confirmer en tapant son nom.
+   Les variables connectées (`BLOB_READ_WRITE_TOKEN`, `BLOB_STORE_ID`, ...) sont
+   retirées automatiquement des projets liés.
+3. S'il en reste : projet **backend** → **Settings → Environment Variables** →
+   supprimer manuellement les `BLOB_*`.
+
+Pas besoin de redéployer : le code ne s'en sert pas.
+
 ---
 
 ## 5. Gestion des articles (espace admin)
