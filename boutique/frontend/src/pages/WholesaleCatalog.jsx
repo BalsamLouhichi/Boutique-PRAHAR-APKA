@@ -51,18 +51,22 @@ export default function WholesaleCatalog() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
-          <h1 className="font-display text-2xl">Catalogue</h1>
+        <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+          <div>
+            <h1 className="font-display text-3xl">Catalogue</h1>
+            <p className="text-sm text-[var(--color-muted)] mt-1">{products.length} article(s) trouvé(s)</p>
+          </div>
           <div className="flex items-center gap-3">
             <input
               type="search"
               placeholder="Rechercher un article..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="border border-[var(--color-line)] rounded-lg px-4 py-2 text-sm w-40 sm:w-56"
+              className="border border-[var(--color-line)] rounded-lg px-4 py-2 text-sm w-56"
             />
             <button
-              onClick={() => setFiltersOpen(true)}
+              type="button"
+              onClick={() => { setIsOpen(false); setFiltersOpen(true); }}
               className="lg:hidden border border-[var(--color-line)] rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap"
             >
               Filtres
@@ -74,13 +78,12 @@ export default function WholesaleCatalog() {
           <WholesaleFilterSidebar filters={filters} onChange={setFilters} isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} />
 
           <div className="flex-1">
-            <p className="text-sm text-[var(--color-muted)] mb-6">{products.length} article(s) disponible(s)</p>
             {loading ? (
               <p className="text-sm text-[var(--color-muted)]">Chargement...</p>
             ) : products.length === 0 ? (
               <p className="text-[var(--color-muted)] text-center py-20">Aucun article ne correspond à ces filtres.</p>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-5 items-stretch">
                 {products.map((p) => <WholesaleProductCard key={p.id} product={p} />)}
               </div>
             )}
