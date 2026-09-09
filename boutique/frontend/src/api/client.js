@@ -31,7 +31,7 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
   if (!res.ok) {
     // express-validator renvoie { errors: [{ msg, path, ... }] } ; on affiche le détail.
     const validationDetail = Array.isArray(data.errors)
-      ? data.errors.map((e) => e.msg).filter(Boolean).join(' · ')
+      ? [...new Set(data.errors.map((e) => e.msg).filter(Boolean))].join('\n')
       : '';
     throw new Error(data.error || validationDetail || `Erreur ${res.status}`);
   }

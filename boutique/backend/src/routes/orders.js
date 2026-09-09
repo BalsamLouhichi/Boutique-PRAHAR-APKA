@@ -19,13 +19,14 @@ router.post(
   '/',
   checkoutLimiter,
   [
-    body('customer_name').trim().isLength({ min: 2, max: 150 }).withMessage('Le nom complet doit faire au moins 2 caractères.'),
-    body('customer_phone').trim().isLength({ min: 6, max: 30 }).withMessage('Le téléphone doit faire au moins 6 caractères.'),
-    body('customer_email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide.'),
-    body('shipping_address').trim().isLength({ min: 3 }).withMessage("L'adresse de livraison doit faire au moins 3 caractères."),
-    body('shipping_city').trim().isLength({ min: 2, max: 100 }).withMessage('La ville doit faire au moins 2 caractères.'),
-    body('payment_method').isIn(['card', 'cash_on_delivery']).withMessage('Mode de paiement invalide.'),
-    body('items').isArray({ min: 1 }).withMessage('Le panier est vide.'),
+    body('customer_name').trim().isLength({ min: 2, max: 150 }).withMessage('Veuillez indiquer votre nom et prénom.'),
+    body('customer_phone').trim().isLength({ min: 6, max: 30 }).withMessage('Numéro de téléphone invalide : indiquez un numéro joignable (au moins 6 chiffres).'),
+    body('customer_email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage("L'adresse email n'est pas valide (exemple : nom@email.com)."),
+    body('shipping_address').trim().isLength({ min: 3, max: 500 }).withMessage('Veuillez indiquer votre adresse de livraison (rue, quartier…).'),
+    body('shipping_city').trim().isLength({ min: 2, max: 100 }).withMessage('Veuillez indiquer votre ville.'),
+    body('shipping_postal_code').optional({ nullable: true, checkFalsy: true }).trim().isLength({ max: 20 }).withMessage('Code postal invalide.'),
+    body('payment_method').isIn(['card', 'cash_on_delivery']).withMessage('Veuillez choisir un mode de paiement.'),
+    body('items').isArray({ min: 1 }).withMessage('Votre panier est vide : ajoutez au moins un article avant de commander.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);

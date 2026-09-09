@@ -78,7 +78,7 @@ export default function Checkout() {
       <form onSubmit={handleSubmit} className="lg:col-span-3 space-y-6">
         <h1 className="font-display text-3xl mb-2">Finaliser la commande</h1>
 
-        {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+        {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 whitespace-pre-line">{error}</p>}
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
