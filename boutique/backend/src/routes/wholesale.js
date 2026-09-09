@@ -136,7 +136,7 @@ router.post(
 // Les articles exclusifs sont renvoyés seulement aux comptes autorisés par l'admin.
 // =========================================================
 router.get('/products', authenticateWholesale, async (req, res) => {
-  const { category, season, gender } = req.query;
+  const { category, season, gender, search } = req.query;
 
   try {
     const accessResult = await pool.query(
@@ -151,6 +151,10 @@ router.get('/products', authenticateWholesale, async (req, res) => {
     if (category) { params.push(category); conditions.push(`c.slug = $${params.length}`); }
     if (season) { params.push(season); conditions.push(`p.season = $${params.length}`); }
     if (gender) { params.push(gender); conditions.push(`p.gender = $${params.length}`); }
+    if (search) {
+      params.push(`%${search}%`);
+      conditions.push(`(p.name ILIKE $${params.length} OR p.description ILIKE $${params.length} OR p.reference ILIKE $${params.length})`);
+    }
     if (!accessResult.rows[0].can_view_exclusive) conditions.push('p.is_exclusive = FALSE');
 
     const result = await pool.query(

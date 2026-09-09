@@ -9,13 +9,15 @@ import { useWholesaleCart } from '../context/WholesaleCartContext.jsx';
 export default function WholesaleCatalog() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({ category: '', season: '', gender: '' });
   const { totalItems, setIsOpen } = useWholesaleCart();
   const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
-    api.getWholesaleProducts(filters)
+    api.getWholesaleProducts({ ...filters, search })
       .then(setProducts)
       .catch((err) => {
         if (err.message.includes('401') || err.message.toLowerCase().includes('connexion')) {
@@ -24,7 +26,7 @@ export default function WholesaleCatalog() {
         }
       })
       .finally(() => setLoading(false));
-  }, [filters]);
+  }, [filters, search]);
 
   function handleLogout() {
     localStorage.removeItem('wholesale_token');
@@ -48,20 +50,41 @@ export default function WholesaleCatalog() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex gap-8">
-        <WholesaleFilterSidebar filters={filters} onChange={setFilters} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
+          <h1 className="font-display text-2xl">Catalogue</h1>
+          <div className="flex items-center gap-3">
+            <input
+              type="search"
+              placeholder="Rechercher un article..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border border-[var(--color-line)] rounded-lg px-4 py-2 text-sm w-40 sm:w-56"
+            />
+            <button
+              onClick={() => setFiltersOpen(true)}
+              className="lg:hidden border border-[var(--color-line)] rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap"
+            >
+              Filtres
+            </button>
+          </div>
+        </div>
 
-        <div className="flex-1">
-          <p className="text-sm text-[var(--color-muted)] mb-6">{products.length} article(s) disponible(s)</p>
-          {loading ? (
-            <p className="text-sm text-[var(--color-muted)]">Chargement...</p>
-          ) : products.length === 0 ? (
-            <p className="text-[var(--color-muted)] text-center py-20">Aucun article ne correspond à ces filtres.</p>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-              {products.map((p) => <WholesaleProductCard key={p.id} product={p} />)}
-            </div>
-          )}
+        <div className="flex gap-8">
+          <WholesaleFilterSidebar filters={filters} onChange={setFilters} isOpen={filtersOpen} onClose={() => setFiltersOpen(false)} />
+
+          <div className="flex-1">
+            <p className="text-sm text-[var(--color-muted)] mb-6">{products.length} article(s) disponible(s)</p>
+            {loading ? (
+              <p className="text-sm text-[var(--color-muted)]">Chargement...</p>
+            ) : products.length === 0 ? (
+              <p className="text-[var(--color-muted)] text-center py-20">Aucun article ne correspond à ces filtres.</p>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
+                {products.map((p) => <WholesaleProductCard key={p.id} product={p} />)}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

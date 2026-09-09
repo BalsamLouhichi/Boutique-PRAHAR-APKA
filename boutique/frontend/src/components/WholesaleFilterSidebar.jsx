@@ -9,7 +9,7 @@ const GENDERS = [
   { value: 'enfant', label: 'Enfant' }, { value: 'unisexe', label: 'Unisexe' },
 ];
 
-export default function WholesaleFilterSidebar({ filters, onChange }) {
+export default function WholesaleFilterSidebar({ filters, onChange, isOpen, onClose }) {
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
@@ -20,8 +20,8 @@ export default function WholesaleFilterSidebar({ filters, onChange }) {
     onChange({ ...filters, [field]: value });
   }
 
-  return (
-    <aside className="w-64 flex-shrink-0 pr-6 border-r border-[var(--color-line)] space-y-8">
+  const content = (
+    <div className="space-y-8">
       <div>
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)] mb-3">Catégorie</h3>
         <div className="space-y-1.5">
@@ -77,6 +77,29 @@ export default function WholesaleFilterSidebar({ filters, onChange }) {
       >
         Réinitialiser les filtres
       </button>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop : panneau fixe */}
+      <aside className="hidden lg:block w-64 flex-shrink-0 pr-6 border-r border-[var(--color-line)]">
+        {content}
+      </aside>
+
+      {/* Mobile : panneau glissant depuis la gauche */}
+      {isOpen && <div className="fixed inset-0 bg-black/40 z-50 lg:hidden" onClick={onClose} />}
+      <aside
+        className={`fixed top-0 left-0 h-full w-80 bg-white z-50 shadow-2xl transition-transform duration-300 overflow-y-auto p-6 lg:hidden ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-display text-lg">Filtrer les articles</h2>
+          <button onClick={onClose} className="text-2xl leading-none" aria-label="Fermer les filtres">&times;</button>
+        </div>
+        {content}
+      </aside>
+    </>
   );
 }
