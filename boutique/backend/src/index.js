@@ -20,8 +20,9 @@ const wholesaleAdminRoutes = require('./routes/wholesaleAdmin');
 const app = express();
 const uploadsDir = path.resolve(__dirname, '../uploads');
 const legacyUploadsDir = path.resolve(__dirname, '../../uploads');
-// En serverless (Vercel) le FS est en lecture seule : les images vont sur
-// Vercel Blob (voir src/lib/storage.js) et ce dossier n'est pas utilisé.
+// Les nouvelles images produit sont stockées en base (voir routes/products.js).
+// Ce dossier ne sert plus qu'aux anciens fichiers /uploads/* éventuels (dev/Docker).
+// En serverless (Vercel) le FS est en lecture seule : on ignore l'échec.
 try {
   fs.mkdirSync(uploadsDir, { recursive: true });
 } catch (err) {

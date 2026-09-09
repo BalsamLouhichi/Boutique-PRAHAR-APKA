@@ -8,10 +8,9 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "hash-password": "node src/scripts/hashPassword.js",
-    "migrate-images": "node src/scripts/migrateImagesToBlob.js"
+    "migrate-images": "node src/scripts/migrateImagesToDb.js"
   },
   "dependencies": {
-    "@vercel/blob": "^2.8.0",
     "bcrypt": "^5.1.1",
     "compression": "^1.7.4",
     "cors": "^2.8.5",

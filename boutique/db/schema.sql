@@ -85,6 +85,10 @@ CREATE TABLE product_images (
     id              SERIAL PRIMARY KEY,
     product_id      UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
     image_url       VARCHAR(500) NOT NULL,
+    -- Contenu binaire de l'image, servi par GET /api/products/images/:id.
+    -- (évite un stockage disque, incompatible avec l'hébergement serverless)
+    data            BYTEA,
+    content_type    VARCHAR(100),
     alt_text        VARCHAR(200),
     is_primary      BOOLEAN NOT NULL DEFAULT FALSE,
     display_order   INTEGER NOT NULL DEFAULT 0,

@@ -3,13 +3,12 @@ const multer = require('multer');
 const { body, validationResult } = require('express-validator');
 const pool = require('../config/db');
 const { authenticateAdmin } = require('../middleware/auth');
-const { saveImage, deleteImage } = require('../lib/storage');
 
 const router = express.Router();
 
 // ---- Upload d'images sécurisé ----
-// Les fichiers sont gardés en mémoire puis poussés vers le stockage
-// (Vercel Blob en prod, disque local en dev) via src/lib/storage.js.
+// Les fichiers sont gardés en mémoire puis stockés en base (colonne bytea).
+// L'image est ensuite servie par GET /api/products/images/:id.
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -91,6 +90,24 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+
+// GET /api/products/images/:id - sert le binaire d'une image stockée en base
+router.get('/images/:id', async (req, res) => {
+  if (!/^\d+$/.test(req.params.id)) return res.status(404).end();
+  try {
+    const { rows } = await pool.query(
+      'SELECT data, content_type FROM product_images WHERE id = $1',
+      [req.params.id]
+    );
+    if (rows.length === 0 || !rows[0].data) return res.status(404).end();
+    res.set('Content-Type', rows[0].content_type || 'application/octet-stream');
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(rows[0].data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).end();
   }
 });
 
@@ -281,11 +298,18 @@ router.post('/:id/images', authenticateAdmin, upload.array('images', 6), async (
 
     const inserted = [];
     for (let i = 0; i < files.length; i++) {
-      const url = await saveImage(files[i]);
+      const file = files[i];
       const result = await pool.query(
-        `INSERT INTO product_images (product_id, image_url, is_primary, display_order)
-         VALUES ($1,$2,$3,$4) RETURNING *`,
-        [id, url, existingImages.rows.length === 0 && i === 0, existingImages.rows.length + i]
+        `WITH ins AS (
+           INSERT INTO product_images (product_id, image_url, data, content_type, is_primary, display_order)
+           VALUES ($1, 'pending', $2, $3, $4, $5)
+           RETURNING id
+         )
+         UPDATE product_images p
+            SET image_url = '/api/products/images/' || p.id
+           FROM ins WHERE p.id = ins.id
+         RETURNING p.id, p.product_id, p.image_url, p.alt_text, p.is_primary, p.display_order, p.created_at`,
+        [id, file.buffer, file.mimetype, existingImages.rows.length === 0 && i === 0, existingImages.rows.length + i]
       );
       inserted.push(result.rows[0]);
     }
@@ -299,12 +323,11 @@ router.post('/:id/images', authenticateAdmin, upload.array('images', 6), async (
 // Suppression d'une image
 router.delete('/images/:imageId', authenticateAdmin, async (req, res) => {
   try {
-    const imageResult = await pool.query('SELECT product_id, is_primary, image_url FROM product_images WHERE id = $1', [req.params.imageId]);
+    const imageResult = await pool.query('SELECT product_id, is_primary FROM product_images WHERE id = $1', [req.params.imageId]);
     if (imageResult.rows.length === 0) return res.status(404).json({ error: 'Image introuvable.' });
 
-    const { product_id, is_primary, image_url } = imageResult.rows[0];
+    const { product_id, is_primary } = imageResult.rows[0];
     await pool.query('DELETE FROM product_images WHERE id = $1', [req.params.imageId]);
-    await deleteImage(image_url);
 
     if (is_primary) {
       const fallback = await pool.query(

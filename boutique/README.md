@@ -163,29 +163,32 @@ Le site est alors disponible sur `http://localhost:5173`.
 
 ---
 
-## 4bis. Stockage des images (déploiement serverless / Vercel)
+## 4bis. Stockage des images
 
-En local et avec Docker, les photos d'articles sont écrites dans `backend/uploads`
-et servies par l'API. Sur un hébergement **serverless** (Vercel, etc.) le système de
-fichiers est éphémère et en lecture seule : ces fichiers disparaissent et
-n'apparaissent jamais sur le site.
+Les photos d'articles sont stockées **dans la base PostgreSQL** (colonne `bytea`)
+et servies par l'API via `GET /api/products/images/:id`. Aucun dossier disque
+n'est utilisé, ce qui rend le site compatible avec un hébergement **serverless**
+(Vercel, etc.) où le système de fichiers est éphémère et en lecture seule.
 
-Solution : **Vercel Blob**.
+### Migration d'une base existante
 
-1. Dans le dashboard Vercel du projet **backend** : `Storage` → `Create` → `Blob`,
-   puis `Connect Project`. Vercel injecte alors `BLOB_READ_WRITE_TOKEN`
-   automatiquement dans les variables d'environnement.
-2. Redéployer le backend.
-3. Migrer les images déjà présentes en base (une seule fois), depuis votre machine
-   avec le `.env` du backend rempli (`BLOB_READ_WRITE_TOKEN` + accès `DB_*` de prod) :
+Si la base contient déjà des articles avec des images en `/uploads/...` :
+
+1. Passer la migration SQL :
+   ```bash
+   psql "$DATABASE_URL" -f db/migration_images_in_db.sql
+   ```
+   (ou coller son contenu dans l'éditeur SQL de Neon)
+
+2. Reprendre les fichiers présents sur le disque, depuis votre machine, avec le
+   `.env` du backend qui pointe vers la base de prod (`DB_*` + `DB_SSL=true`) :
    ```bash
    cd backend
    npm run migrate-images -- --dry-run   # vérification
    npm run migrate-images                # migration réelle
    ```
 
-Sans `BLOB_READ_WRITE_TOKEN`, le code retombe automatiquement sur le stockage
-disque local — rien à changer pour le développement.
+Les fichiers sources se trouvent dans `boutique/uploads/` (versionnés dans le dépôt).
 
 ---
 
