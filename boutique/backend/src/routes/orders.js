@@ -19,12 +19,13 @@ router.post(
   '/',
   checkoutLimiter,
   [
-    body('customer_name').trim().isLength({ min: 2, max: 150 }),
-    body('customer_phone').trim().isLength({ min: 6, max: 30 }),
-    body('shipping_address').trim().isLength({ min: 5 }),
-    body('shipping_city').trim().isLength({ min: 2, max: 100 }),
-    body('payment_method').isIn(['card', 'cash_on_delivery']),
-    body('items').isArray({ min: 1 }),
+    body('customer_name').trim().isLength({ min: 2, max: 150 }).withMessage('Le nom complet doit faire au moins 2 caractères.'),
+    body('customer_phone').trim().isLength({ min: 6, max: 30 }).withMessage('Le téléphone doit faire au moins 6 caractères.'),
+    body('customer_email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Email invalide.'),
+    body('shipping_address').trim().isLength({ min: 3 }).withMessage("L'adresse de livraison doit faire au moins 3 caractères."),
+    body('shipping_city').trim().isLength({ min: 2, max: 100 }).withMessage('La ville doit faire au moins 2 caractères.'),
+    body('payment_method').isIn(['card', 'cash_on_delivery']).withMessage('Mode de paiement invalide.'),
+    body('items').isArray({ min: 1 }).withMessage('Le panier est vide.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);

@@ -29,7 +29,11 @@ async function request(path, { method = 'GET', body, auth = false } = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.error || `Erreur ${res.status}`);
+    // express-validator renvoie { errors: [{ msg, path, ... }] } ; on affiche le détail.
+    const validationDetail = Array.isArray(data.errors)
+      ? data.errors.map((e) => e.msg).filter(Boolean).join(' · ')
+      : '';
+    throw new Error(data.error || validationDetail || `Erreur ${res.status}`);
   }
   return data;
 }
