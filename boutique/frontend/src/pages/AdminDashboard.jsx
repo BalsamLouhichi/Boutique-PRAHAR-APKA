@@ -350,8 +350,8 @@ export default function AdminDashboard() {
                       {p.sale_type === 'gros' ? (
                         <span className="text-[var(--color-muted)]">—</span>
                       ) : (
-                        <span className={`font-medium ${p.stock_quantity <= 0 ? 'text-red-600' : p.stock_quantity <= 5 ? 'text-[var(--color-amber-dark)]' : 'text-[var(--color-ink)]'}`}>
-                          {p.stock_quantity <= 0 ? 'Rupture' : p.stock_quantity}
+                        <span className={`font-medium ${p.total_stock <= 0 ? 'text-red-600' : p.total_stock <= 5 ? 'text-[var(--color-amber-dark)]' : 'text-[var(--color-ink)]'}`}>
+                          {p.total_stock <= 0 ? 'Rupture' : p.total_stock}
                         </span>
                       )}
                     </td>

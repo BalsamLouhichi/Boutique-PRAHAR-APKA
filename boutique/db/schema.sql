@@ -55,7 +55,6 @@ CREATE TABLE products (
 
     -- Infos commerciales (vente en gros, pas de paiement en ligne)
     min_order_qty   INTEGER NOT NULL DEFAULT 1,      -- quantité minimale de commande
-    stock_quantity  INTEGER NOT NULL DEFAULT 0,      -- stock disponible (articles en détail)
     colors          TEXT[],                          -- ex: {'Noir','Gris','Bleu'}
     sizes           TEXT[],                          -- ex: {'S','M','L','XL'} ou {'Taille unique'}
     material        VARCHAR(150),
@@ -97,6 +96,22 @@ CREATE TABLE product_images (
 );
 
 CREATE INDEX idx_product_images_product ON product_images(product_id);
+
+-- ---------------------------------------------------------------
+-- Table: product_variants
+-- Stock disponible par couleur (articles en détail).
+-- color='' quand l'article n'a pas de couleurs (stock unique).
+-- ---------------------------------------------------------------
+CREATE TABLE product_variants (
+    id              SERIAL PRIMARY KEY,
+    product_id      UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    color           VARCHAR(50) NOT NULL DEFAULT '',
+    stock_quantity  INTEGER NOT NULL DEFAULT 0,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (product_id, color)
+);
+
+CREATE INDEX idx_product_variants_product ON product_variants(product_id);
 
 -- ---------------------------------------------------------------
 -- Table: quote_requests

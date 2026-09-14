@@ -48,11 +48,8 @@ router.post(
       const resolvedItems = [];
 
       for (const it of items) {
-        // FOR UPDATE verrouille la ligne le temps de la transaction : deux
-        // commandes simultanées sur le même article ne peuvent pas survendre
-        // le stock restant.
         const productResult = await client.query(
-          'SELECT id, name, price, promo_price, is_active, stock_quantity FROM products WHERE id = $1 FOR UPDATE',
+          'SELECT id, name, price, promo_price, is_active FROM products WHERE id = $1',
           [it.product_id]
         );
         if (productResult.rows.length === 0 || !productResult.rows[0].is_active) {
@@ -61,21 +58,29 @@ router.post(
         const product = productResult.rows[0];
         const unitPrice = product.promo_price != null ? Number(product.promo_price) : Number(product.price);
         const quantity = parseInt(it.quantity) || 1;
+        const color = it.color || '';
 
-        if (product.stock_quantity < quantity) {
-          throw new Error(
-            product.stock_quantity > 0
-              ? `Stock insuffisant pour "${product.name}" : ${product.stock_quantity} disponible(s).`
-              : `"${product.name}" est en rupture de stock.`
-          );
+        // FOR UPDATE verrouille la ligne le temps de la transaction : deux
+        // commandes simultanées sur la même couleur ne peuvent pas survendre
+        // le stock restant.
+        const variantResult = await client.query(
+          'SELECT id, stock_quantity FROM product_variants WHERE product_id = $1 AND color = $2 FOR UPDATE',
+          [product.id, color]
+        );
+        const variantStock = variantResult.rows[0]?.stock_quantity ?? 0;
+
+        if (variantResult.rows.length === 0 || variantStock < quantity) {
+          const label = `"${product.name}"${color ? ` (${color})` : ''}`;
+          const reason = variantStock > 0 ? `: ${variantStock} disponible(s).` : 'est en rupture de stock.';
+          throw new Error(`${label} ${reason}`);
         }
 
         const lineTotal = unitPrice * quantity;
         subtotal += lineTotal;
 
         await client.query(
-          'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2',
-          [quantity, product.id]
+          'UPDATE product_variants SET stock_quantity = stock_quantity - $1 WHERE id = $2',
+          [quantity, variantResult.rows[0].id]
         );
 
         resolvedItems.push({
@@ -215,13 +220,14 @@ router.put(
         return res.status(404).json({ error: 'Commande introuvable.' });
       }
 
-      // Annulation : on remet le stock des articles de la commande, une seule
-      // fois (si elle n'était pas déjà annulée).
+      // Annulation : on remet le stock des couleurs de la commande, une
+      // seule fois (si elle n'était pas déjà annulée).
       if (req.body.status === 'annulee' && current.rows[0].status !== 'annulee') {
         await client.query(
-          `UPDATE products p SET stock_quantity = p.stock_quantity + oi.quantity
+          `UPDATE product_variants v SET stock_quantity = v.stock_quantity + oi.quantity
              FROM order_items oi
-            WHERE oi.order_id = $1 AND oi.product_id = p.id`,
+            WHERE oi.order_id = $1 AND oi.product_id = v.product_id
+              AND COALESCE(oi.selected_color, '') = v.color`,
           [req.params.id]
         );
       }

@@ -36,6 +36,46 @@ function isIntegerLike(value) {
   return Number.isInteger(Number(value)) && value !== '' && value !== null && value !== undefined;
 }
 
+// Sous-requête JSON : stock par couleur d'un article, embarqué directement
+// dans les réponses produit pour éviter un aller-retour supplémentaire quand
+// le client doit connaître le stock de la couleur sélectionnée.
+const VARIANTS_SUBQUERY = `(
+  SELECT COALESCE(json_agg(json_build_object('color', pv.color, 'stock_quantity', pv.stock_quantity) ORDER BY pv.id), '[]')
+  FROM product_variants pv WHERE pv.product_id = p.id
+) AS variants`;
+
+// Normalise le tableau couleur/stock envoyé par l'admin : couleur en chaîne
+// (vide si l'article n'a pas de couleurs), stock en entier positif ou nul.
+// Ignore les entrées invalides plutôt que de faire échouer toute la sauvegarde.
+function normalizeVariants(rawVariants) {
+  if (!Array.isArray(rawVariants)) return [];
+  const seen = new Set();
+  const variants = [];
+  for (const v of rawVariants) {
+    if (!v || typeof v !== 'object') continue;
+    const color = String(v.color || '').trim().slice(0, 50);
+    if (seen.has(color)) continue;
+    seen.add(color);
+    const stock = Math.max(parseInt(v.stock_quantity, 10) || 0, 0);
+    variants.push({ color, stock_quantity: stock });
+  }
+  return variants;
+}
+
+// Remplace entièrement le stock par couleur d'un article (le formulaire admin
+// envoie toujours l'état complet, plus simple et plus sûr qu'un diff).
+async function replaceVariants(client, productId, rawVariants) {
+  const variants = normalizeVariants(rawVariants);
+  await client.query('DELETE FROM product_variants WHERE product_id = $1', [productId]);
+  for (const v of variants) {
+    await client.query(
+      'INSERT INTO product_variants (product_id, color, stock_quantity) VALUES ($1,$2,$3)',
+      [productId, v.color, v.stock_quantity]
+    );
+  }
+  return variants;
+}
+
 // =========================================================
 // GET /api/products - liste publique avec filtres + pagination
 // =========================================================
@@ -79,10 +119,11 @@ router.get('/', async (req, res) => {
     params.push(limit, offset);
     const result = await pool.query(
       `SELECT p.id, p.reference, p.name, p.slug, p.description, p.season, p.gender, p.sale_type,
-              p.min_order_qty, p.stock_quantity, p.colors, p.sizes, p.material, p.price, p.promo_price,
+              p.min_order_qty, p.colors, p.sizes, p.material, p.price, p.promo_price,
               p.is_new, p.is_featured, c.name AS category_name, c.slug AS category_slug,
               (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id
-                 ORDER BY pi.is_primary DESC, pi.created_at DESC, pi.display_order ASC LIMIT 1) AS primary_image
+                 ORDER BY pi.is_primary DESC, pi.created_at DESC, pi.display_order ASC LIMIT 1) AS primary_image,
+              ${VARIANTS_SUBQUERY}
        FROM products p
        JOIN categories c ON c.id = p.category_id
        ${whereClause}
@@ -123,7 +164,7 @@ router.get('/images/:id', async (req, res) => {
 router.get('/:slug', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT p.*, c.name AS category_name, c.slug AS category_slug
+      `SELECT p.*, c.name AS category_name, c.slug AS category_slug, ${VARIANTS_SUBQUERY}
        FROM products p JOIN categories c ON c.id = p.category_id
       WHERE p.slug = $1 AND p.is_active = TRUE AND p.sale_type = 'detail'`,
       [req.params.slug]
@@ -153,7 +194,8 @@ router.get('/admin/all', authenticateAdmin, async (req, res) => {
     const result = await pool.query(
       `SELECT p.*, c.name AS category_name,
               (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id
-                 ORDER BY pi.is_primary DESC, pi.created_at DESC, pi.display_order ASC LIMIT 1) AS primary_image
+                 ORDER BY pi.is_primary DESC, pi.created_at DESC, pi.display_order ASC LIMIT 1) AS primary_image,
+              (SELECT COALESCE(SUM(pv.stock_quantity), 0) FROM product_variants pv WHERE pv.product_id = p.id)::int AS total_stock
        FROM products p JOIN categories c ON c.id = p.category_id
        ORDER BY p.created_at DESC`
     );
@@ -168,7 +210,7 @@ router.get('/admin/all', authenticateAdmin, async (req, res) => {
 router.get('/admin/:id', authenticateAdmin, async (req, res) => {
   try {
     const productResult = await pool.query(
-      `SELECT p.*, c.name AS category_name
+      `SELECT p.*, c.name AS category_name, ${VARIANTS_SUBQUERY}
        FROM products p JOIN categories c ON c.id = p.category_id WHERE p.id = $1`,
       [req.params.id]
     );
@@ -200,8 +242,6 @@ router.post(
       .withMessage('Le prix doit être supérieur à zéro pour un article en détail.'),
     body('promo_price').optional({ nullable: true, checkFalsy: true }).isFloat({ gt: 0 })
       .custom((value, { req }) => req.body.sale_type === 'gros' || Number(value) < Number(req.body.price)).withMessage('Le prix promo doit être inférieur au prix normal.'),
-    body('stock_quantity').optional({ nullable: true, checkFalsy: true }).isInt({ min: 0 })
-      .withMessage('La quantité en stock doit être un nombre entier positif ou nul.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -209,26 +249,34 @@ router.post(
 
     const {
       reference, name, slug, description, category_id, season, gender, sale_type,
-        min_order_qty, stock_quantity, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive,
+        min_order_qty, variants, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive,
     } = req.body;
 
+    const client = await pool.connect();
     try {
-      const result = await pool.query(
+      await client.query('BEGIN');
+      const result = await client.query(
         `INSERT INTO products
           (reference, name, slug, description, category_id, season, gender, sale_type,
-            min_order_qty, stock_quantity, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive, created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
+            min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive, created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
         [
           reference || null, name, slug, description || null, category_id, season, gender, sale_type || 'detail',
-          min_order_qty || 1, Number(stock_quantity) || 0, colors || [], sizes || [], material || null, Number(price) || 0,
+          min_order_qty || 1, colors || [], sizes || [], material || null, Number(price) || 0,
            sale_type === 'gros' || promo_price == null || promo_price === '' ? null : Number(promo_price), !!is_new, !!is_featured, !!is_exclusive, req.admin.id,
         ]
       );
-      res.status(201).json(result.rows[0]);
+      const product = result.rows[0];
+      const savedVariants = await replaceVariants(client, product.id, sale_type === 'gros' ? [] : variants);
+      await client.query('COMMIT');
+      res.status(201).json({ ...product, variants: savedVariants });
     } catch (err) {
+      await client.query('ROLLBACK');
       if (err.code === '23505') return res.status(409).json({ error: 'Référence ou slug déjà utilisé.' });
       console.error(err);
       res.status(500).json({ error: 'Erreur serveur.' });
+    } finally {
+      client.release();
     }
   }
 );
@@ -238,7 +286,7 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
   const { id } = req.params;
   const {
     reference, name, slug, description, category_id, season, gender, sale_type,
-    min_order_qty, stock_quantity, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive, is_active,
+    min_order_qty, variants, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive, is_active,
   } = req.body;
 
   if (!['hiver', 'ete'].includes(season)) {
@@ -251,29 +299,38 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
   if (sale_type === 'detail' && (!(Number(price) > 0) || (promo_price != null && promo_price !== '' && !(Number(promo_price) > 0 && Number(promo_price) < Number(price))))) {
     return res.status(400).json({ error: 'Le prix doit être supérieur à zéro et le prix promo doit être inférieur au prix normal.' });
   }
-  if (stock_quantity != null && stock_quantity !== '' && (!Number.isInteger(Number(stock_quantity)) || Number(stock_quantity) < 0)) {
-    return res.status(400).json({ error: 'La quantité en stock doit être un nombre entier positif ou nul.' });
-  }
 
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
+    await client.query('BEGIN');
+    const result = await client.query(
       `UPDATE products SET
         reference=$1, name=$2, slug=$3, description=$4, category_id=$5, season=$6, gender=$7, sale_type=$8,
-        min_order_qty=$9, stock_quantity=$10, colors=$11, sizes=$12, material=$13, price=$14, promo_price=$15,
-        is_new=$16, is_featured=$17, is_exclusive=$18, is_active=$19
-             WHERE id=$20 RETURNING *`,
+        min_order_qty=$9, colors=$10, sizes=$11, material=$12, price=$13, promo_price=$14,
+        is_new=$15, is_featured=$16, is_exclusive=$17, is_active=$18
+             WHERE id=$19 RETURNING *`,
       [
         reference, name, slug, description, category_id, season, gender, sale_type,
-        min_order_qty, Number(stock_quantity) || 0, colors, sizes, material, Number(price) || 0,
+        min_order_qty, colors, sizes, material, Number(price) || 0,
         sale_type === 'gros' || promo_price == null || promo_price === '' ? null : Number(promo_price),
         !!is_new, !!is_featured, !!is_exclusive, is_active !== false, id,
       ]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Produit introuvable.' });
-    res.json(result.rows[0]);
+    if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Produit introuvable.' });
+    }
+    // Pour un article en gros, variants n'est pas fourni par le formulaire :
+    // replaceVariants videra simplement la table pour ce produit.
+    const savedVariants = await replaceVariants(client, id, sale_type === 'gros' ? [] : variants);
+    await client.query('COMMIT');
+    res.json({ ...result.rows[0], variants: savedVariants });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur.' });
+  } finally {
+    client.release();
   }
 });
 

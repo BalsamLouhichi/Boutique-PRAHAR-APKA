@@ -21,7 +21,6 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
     season: product?.season || 'ete',
     gender: product?.gender || 'unisexe',
     min_order_qty: product?.min_order_qty || 1,
-    stock_quantity: product?.stock_quantity ?? 0,
     price: product?.price ?? '',
     promo_price: product?.promo_price ?? '',
     colors: product?.colors?.join(', ') || '',
@@ -37,8 +36,20 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
   const [existingImages, setExistingImages] = useState(product?.images || []);
   const fileInputRef = useRef(null);
   const [singleSize, setSingleSize] = useState(product?.sizes?.includes('Taille unique') || false);
+  // Stock par couleur : { 'Noir': 8, 'Rose': 3, ... } ('' = pas de couleurs, un seul stock).
+  const [variantStock, setVariantStock] = useState(() => {
+    const initial = {};
+    (product?.variants || []).forEach((v) => { initial[v.color || ''] = v.stock_quantity; });
+    return initial;
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const colorList = form.colors.split(',').map((s) => s.trim()).filter(Boolean);
+  const stockRows = colorList.length > 0 ? colorList : [''];
+
+  function updateVariantStock(colorKey, value) {
+    setVariantStock((v) => ({ ...v, [colorKey]: value }));
+  }
   let formTitle = 'Nouvel article en détail';
   if (product) formTitle = 'Modifier l\'article';
   else if (form.sale_type === 'gros') formTitle = 'Nouvel article en gros';
@@ -99,9 +110,9 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
         is_exclusive: form.sale_type === 'gros' ? form.is_exclusive : false,
         category_id: parseInt(form.category_id),
         min_order_qty: parseInt(form.min_order_qty) || 1,
-        stock_quantity: Math.max(parseInt(form.stock_quantity) || 0, 0),
-        colors: form.colors.split(',').map((s) => s.trim()).filter(Boolean),
+        colors: colorList,
         sizes: singleSize ? ['Taille unique'] : form.sizes.split(',').map((s) => s.trim()).filter(Boolean),
+        variants: stockRows.map((c) => ({ color: c, stock_quantity: Math.max(parseInt(variantStock[c]) || 0, 0) })),
       };
 
       let saved;
@@ -165,7 +176,7 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
           />
         </div>
 
-        {form.sale_type === 'detail' ? <div className="grid grid-cols-3 gap-4 mb-4">
+        {form.sale_type === 'detail' ? <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium mb-1">Prix de vente (TRY) *</label>
             <input required type="number" min="0.01" step="0.01" value={form.price} onChange={(e) => update('price', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
@@ -173,11 +184,6 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
           <div>
             <label className="block text-sm font-medium mb-1">Prix promo (TRY)</label>
             <input type="number" min={0} step="0.01" value={form.promo_price} onChange={(e) => update('promo_price', e.target.value)} placeholder="Optionnel" className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Quantité en stock *</label>
-            <input required type="number" min={0} step="1" value={form.stock_quantity} onChange={(e) => update('stock_quantity', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
-            <p className="mt-1 text-xs text-[var(--color-muted)]">0 = rupture de stock, l'article s'affiche mais ne peut plus être commandé.</p>
           </div>
         </div> : <div className="mb-4 rounded-xl border border-[var(--color-amber)]/30 bg-[var(--color-paper)] px-4 py-3 text-sm text-[var(--color-muted)]">Les articles en gros sont proposés sur devis. Aucun prix de vente ni stock n’est requis ici.</div>}
 
@@ -236,6 +242,29 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
             </div>
           )}
         </div>
+
+        {form.sale_type === 'detail' && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Stock {colorList.length > 0 ? 'par couleur' : ''} *</label>
+            <div className="rounded-xl border border-[var(--color-line)] divide-y divide-[var(--color-line)]">
+              {stockRows.map((rowColor) => (
+                <div key={rowColor || '__default__'} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <span className="text-sm text-[var(--color-ink)]">{rowColor || 'Quantité disponible'}</span>
+                  <input
+                    required
+                    type="number"
+                    min={0}
+                    step="1"
+                    value={variantStock[rowColor] ?? 0}
+                    onChange={(e) => updateVariantStock(rowColor, e.target.value)}
+                    className="w-28 border border-[var(--color-line)] rounded-lg px-3 py-1.5 text-sm text-right"
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-[var(--color-muted)]">0 = rupture de stock pour cette couleur ; l'article s'affiche mais ne peut plus être commandé dans cette couleur.</p>
+          </div>
+        )}
 
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">Matière</label>

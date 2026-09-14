@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveImageUrl } from '../api/client.js';
 import { effectivePrice, formatPrice, hasPromo } from '../utils/price.js';
+import { getTotalStock, getVariantStock } from '../utils/stock.js';
 
 
 const SEASON_LABELS = { hiver: 'Hiver', ete: 'Été' };
@@ -14,10 +15,21 @@ export default function ProductCard({ product }) {
   const [color, setColor] = useState(product.colors?.[0] || '');
   const [size, setSize] = useState(product.sizes?.[0] || '');
   const [showOptions, setShowOptions] = useState(false);
-  // stock_quantity absent (ancien cache navigateur) => on ne bloque pas la vente.
-  const stock = product.stock_quantity;
-  const outOfStock = stock != null && stock <= 0;
-  const lowStock = stock != null && stock > 0 && stock <= 5;
+
+  // variants absent (ancien cache navigateur) => on ne bloque pas la vente.
+  const totalStock = getTotalStock(product);
+  const outOfStock = totalStock != null && totalStock <= 0;
+  const lowStock = totalStock != null && totalStock > 0 && totalStock <= 5;
+
+  // Stock de la couleur actuellement sélectionnée dans le panneau d'options.
+  const selectedStock = getVariantStock(product, color);
+  const selectedOutOfStock = selectedStock != null && selectedStock <= 0;
+
+  function handleColorChange(newColor) {
+    setColor(newColor);
+    const newStock = getVariantStock(product, newColor);
+    if (newStock != null && newStock > 0) setQuantity((q) => Math.min(q, newStock));
+  }
 
   return (
     <div className="group w-full min-w-0 h-full bg-white rounded-2xl border border-[var(--color-line)] overflow-hidden hover:shadow-lg hover:border-[var(--color-amber)] transition-all flex flex-col">
@@ -57,7 +69,7 @@ export default function ProductCard({ product }) {
           {hasPromo(product) && <span className="text-sm text-[var(--color-muted)] line-through">{formatPrice(product.price)}</span>}
           {hasPromo(product) && <span className="text-xs font-semibold text-[var(--color-sage)]">Promo</span>}
         </div>
-        {lowStock && <p className="mb-3 -mt-2 text-xs font-medium text-[var(--color-amber-dark)]">{stock} pièces restantes</p>}
+        {lowStock && <p className="mb-3 -mt-2 text-xs font-medium text-[var(--color-amber-dark)]">{totalStock} pièces restantes</p>}
 
         <div className="mb-4 space-y-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)] px-3 py-2.5 text-sm">
           {product.colors?.length > 0 && (
@@ -93,7 +105,7 @@ export default function ProductCard({ product }) {
         ) : (
           <div className="mt-auto space-y-2">
             {product.colors?.length > 0 && (
-              <select value={color} onChange={(e) => setColor(e.target.value)} className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5" aria-label="Choisir une couleur">
+              <select value={color} onChange={(e) => handleColorChange(e.target.value)} className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5" aria-label="Choisir une couleur">
                 {product.colors.map((option) => <option key={option} value={option}>{option}</option>)}
               </select>
             )}
@@ -102,25 +114,29 @@ export default function ProductCard({ product }) {
                 {product.sizes.map((option) => <option key={option} value={option}>{option}</option>)}
               </select>
             )}
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
-                max={stock ?? undefined}
-                value={quantity}
-                onChange={(e) => setQuantity(Math.min(Math.max(parseInt(e.target.value) || 1, 1), stock ?? Infinity))}
-                className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5"
-              />
-              <button
-                onClick={() => {
-                  addItem(product, quantity, color, size);
-                  setShowOptions(false);
-                }}
-                className="whitespace-nowrap bg-[var(--color-amber)] hover:bg-[var(--color-amber-dark)] text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
-              >
-                Ajouter
-              </button>
-            </div>
+            {selectedOutOfStock ? (
+              <p className="text-xs font-medium text-red-600">Rupture de stock pour cette couleur.</p>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={selectedStock ?? undefined}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.min(Math.max(parseInt(e.target.value) || 1, 1), selectedStock ?? Infinity))}
+                  className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5"
+                />
+                <button
+                  onClick={() => {
+                    addItem(product, quantity, color, size);
+                    setShowOptions(false);
+                  }}
+                  className="whitespace-nowrap bg-[var(--color-amber)] hover:bg-[var(--color-amber-dark)] text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
+                >
+                  Ajouter
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

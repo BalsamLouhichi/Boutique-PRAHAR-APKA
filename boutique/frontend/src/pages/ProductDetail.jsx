@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api, resolveImageUrl } from '../api/client.js';
 import { useCart } from '../context/CartContext.jsx';
 import { effectivePrice, formatPrice, hasPromo } from '../utils/price.js';
+import { getTotalStock, getVariantStock } from '../utils/stock.js';
 
 const SEASON_LABELS = { hiver: 'Hiver', ete: 'Été' };
 const GENDER_LABELS = { homme: 'Homme', femme: 'Femme', enfant: 'Enfant', unisexe: 'Unisexe' };
@@ -35,9 +36,19 @@ export default function ProductDetail() {
   if (error) return <div className="max-w-4xl mx-auto px-4 py-20 text-center"><p className="text-red-600">{error}</p><Link to="/boutique" className="mt-4 inline-block underline">Retour au catalogue</Link></div>;
   if (!product) return <div className="max-w-4xl mx-auto px-4 py-20 text-center text-[var(--color-muted)]">Chargement du produit...</div>;
 
-  const stock = product.stock_quantity;
-  const outOfStock = stock != null && stock <= 0;
-  const lowStock = stock != null && stock > 0 && stock <= 5;
+  const totalStock = getTotalStock(product);
+  const outOfStock = totalStock != null && totalStock <= 0;
+  const lowStock = totalStock != null && totalStock > 0 && totalStock <= 5;
+
+  // Stock de la couleur actuellement sélectionnée.
+  const selectedStock = getVariantStock(product, color);
+  const selectedOutOfStock = selectedStock != null && selectedStock <= 0;
+
+  function handleColorChange(newColor) {
+    setColor(newColor);
+    const newStock = getVariantStock(product, newColor);
+    if (newStock != null && newStock > 0) setQuantity((q) => Math.min(q, newStock));
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -57,17 +68,22 @@ export default function ProductDetail() {
           {outOfStock ? (
             <p className="mb-6 text-sm font-semibold text-red-600">Rupture de stock</p>
           ) : lowStock ? (
-            <p className="mb-6 text-sm font-medium text-[var(--color-amber-dark)]">{stock} pièces restantes</p>
+            <p className="mb-6 text-sm font-medium text-[var(--color-amber-dark)]">{totalStock} pièces restantes</p>
           ) : <div className="mb-6" />}
           {product.description && <p className="text-[var(--color-muted)] leading-relaxed mb-7">{product.description}</p>}
           <div className="grid sm:grid-cols-2 gap-3 mb-7 text-sm"><div className="rounded-xl bg-[var(--color-paper)] p-3"><b>Saison</b><p className="text-[var(--color-muted)] mt-1">{SEASON_LABELS[product.season]}</p></div><div className="rounded-xl bg-[var(--color-paper)] p-3"><b>Genre</b><p className="text-[var(--color-muted)] mt-1">{GENDER_LABELS[product.gender]}</p></div></div>
           <div className="space-y-5 border-t border-[var(--color-line)] pt-6">
-            {product.colors?.length > 0 && <label className="block text-sm font-semibold">Couleur<select value={color} onChange={(e) => setColor(e.target.value)} className="mt-2 block w-full rounded-lg border border-[var(--color-line)] px-3 py-3 font-normal">{product.colors.map((option) => <option key={option}>{option}</option>)}</select></label>}
+            {product.colors?.length > 0 && <label className="block text-sm font-semibold">Couleur<select value={color} onChange={(e) => handleColorChange(e.target.value)} className="mt-2 block w-full rounded-lg border border-[var(--color-line)] px-3 py-3 font-normal">{product.colors.map((option) => <option key={option}>{option}</option>)}</select></label>}
             {product.sizes?.length > 0 && <label className="block text-sm font-semibold">Taille<select value={size} onChange={(e) => setSize(e.target.value)} className="mt-2 block w-full rounded-lg border border-[var(--color-line)] px-3 py-3 font-normal">{product.sizes.map((option) => <option key={option}>{option}</option>)}</select></label>}
             {outOfStock ? (
               <button disabled className="w-full rounded-lg border border-[var(--color-line)] px-5 py-3 font-semibold text-[var(--color-muted)] cursor-not-allowed">Rupture de stock</button>
+            ) : selectedOutOfStock ? (
+              <div>
+                <button disabled className="w-full rounded-lg border border-[var(--color-line)] px-5 py-3 font-semibold text-[var(--color-muted)] cursor-not-allowed">Rupture de stock</button>
+                <p className="mt-2 text-sm text-red-600">Cette couleur n'est plus disponible.</p>
+              </div>
             ) : (
-              <div className="flex gap-3"><input aria-label="Quantité" type="number" min={1} max={stock ?? undefined} value={quantity} onChange={(e) => setQuantity(Math.min(Math.max(Number(e.target.value) || 1, 1), stock ?? Infinity))} className="w-24 rounded-lg border border-[var(--color-line)] px-3 py-3" /><button onClick={() => addItem(product, quantity, color, size)} className="flex-1 rounded-lg bg-[var(--color-ink)] px-5 py-3 font-semibold text-white hover:bg-[var(--color-ink-light)]">Ajouter au panier</button></div>
+              <div className="flex gap-3"><input aria-label="Quantité" type="number" min={1} max={selectedStock ?? undefined} value={quantity} onChange={(e) => setQuantity(Math.min(Math.max(Number(e.target.value) || 1, 1), selectedStock ?? Infinity))} className="w-24 rounded-lg border border-[var(--color-line)] px-3 py-3" /><button onClick={() => addItem(product, quantity, color, size)} className="flex-1 rounded-lg bg-[var(--color-ink)] px-5 py-3 font-semibold text-white hover:bg-[var(--color-ink-light)]">Ajouter au panier</button></div>
             )}
           </div>
         </section>
