@@ -16,8 +16,9 @@ export default function WholesaleAuth() {
     setLoginError('');
     setLoginLoading(true);
     try {
-      const { token } = await api.wholesaleLogin(loginForm.email, loginForm.password);
+      const { token, account } = await api.wholesaleLogin(loginForm.email, loginForm.password);
       localStorage.setItem('wholesale_token', token);
+      if (account) localStorage.setItem('wholesale_account', JSON.stringify(account));
       navigate('/gros/catalogue');
     } catch (err) {
       setLoginError(err.message || 'Connexion échouée.');

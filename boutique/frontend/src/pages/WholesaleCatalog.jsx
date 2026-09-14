@@ -1,10 +1,34 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import WholesaleProductCard from '../components/WholesaleProductCard.jsx';
 import WholesaleFilterSidebar from '../components/WholesaleFilterSidebar.jsx';
 import WholesaleCartDrawer from '../components/WholesaleCartDrawer.jsx';
 import { useWholesaleCart } from '../context/WholesaleCartContext.jsx';
+
+// Le JWT contient déjà companyName (voir POST /api/wholesale/login) : ça sert
+// de repli pour les sessions ouvertes avant l'ajout de ce badge, sans obliger
+// à se reconnecter.
+function decodeJwtPayload(token) {
+  try {
+    const base64 = token.split('.')[1].replaceAll('-', '+').replaceAll('_', '/');
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+}
+
+function readWholesaleAccount() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('wholesale_account') || 'null');
+    if (stored) return stored;
+  } catch {
+    // ignore, on retombe sur le JWT
+  }
+  const payload = decodeJwtPayload(localStorage.getItem('wholesale_token') || '');
+  return payload?.companyName ? { company_name: payload.companyName } : null;
+}
 
 export default function WholesaleCatalog() {
   const [products, setProducts] = useState([]);
@@ -12,8 +36,12 @@ export default function WholesaleCatalog() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({ category: '', season: '', gender: '' });
+  const [account] = useState(readWholesaleAccount);
   const { totalItems, setIsOpen } = useWholesaleCart();
   const navigate = useNavigate();
+
+  const displayName = account?.contact_name || account?.company_name || '';
+  const initial = displayName.trim().charAt(0).toUpperCase() || '?';
 
   useEffect(() => {
     setLoading(true);
@@ -30,15 +58,39 @@ export default function WholesaleCatalog() {
 
   function handleLogout() {
     localStorage.removeItem('wholesale_token');
+    localStorage.removeItem('wholesale_account');
     navigate('/gros/connexion');
   }
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)]">
       <header className="bg-white border-b border-[var(--color-line)] sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <span className="font-display text-xl">Catalogue en gros</span>
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-muted)] hover:text-[var(--color-ink)] transition-colors shrink-0"
+              title="Retour au site"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              <span className="hidden sm:inline">Retour au site</span>
+            </Link>
+            <span className="hidden md:block font-display text-xl truncate">Catalogue en gros</span>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            {displayName && (
+              <div
+                className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-line)] pl-1.5 pr-3 py-1"
+                title={account?.company_name && account.company_name !== displayName ? account.company_name : undefined}
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs font-semibold">
+                  {initial}
+                </span>
+                <span className="text-sm font-medium text-[var(--color-ink)] max-w-[140px] truncate">{displayName}</span>
+              </div>
+            )}
             <button onClick={() => setIsOpen(true)} className="relative border border-[var(--color-line)] rounded-full px-4 py-2 text-sm font-medium hover:border-[var(--color-amber)]">
               Panier
               {totalItems > 0 && (
