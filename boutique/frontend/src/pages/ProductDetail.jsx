@@ -57,7 +57,7 @@ export default function ProductDetail() {
           {outOfStock ? (
             <p className="mb-6 text-sm font-semibold text-red-600">Rupture de stock</p>
           ) : lowStock ? (
-            <p className="mb-6 text-sm font-medium text-[var(--color-amber-dark)]">Plus que {stock} en stock</p>
+            <p className="mb-6 text-sm font-medium text-[var(--color-amber-dark)]">{stock} pièces restantes</p>
           ) : <div className="mb-6" />}
           {product.description && <p className="text-[var(--color-muted)] leading-relaxed mb-7">{product.description}</p>}
           <div className="grid sm:grid-cols-2 gap-3 mb-7 text-sm"><div className="rounded-xl bg-[var(--color-paper)] p-3"><b>Saison</b><p className="text-[var(--color-muted)] mt-1">{SEASON_LABELS[product.season]}</p></div><div className="rounded-xl bg-[var(--color-paper)] p-3"><b>Genre</b><p className="text-[var(--color-muted)] mt-1">{GENDER_LABELS[product.gender]}</p></div></div>

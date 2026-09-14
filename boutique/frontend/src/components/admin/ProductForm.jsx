@@ -206,7 +206,7 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className={`grid gap-4 mb-4 ${form.sale_type === 'gros' ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <div>
             <label className="block text-sm font-medium mb-1">Couleurs (séparées par virgule)</label>
             <input value={form.colors} onChange={(e) => update('colors', e.target.value)} placeholder="Noir, Gris, Bleu" className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
@@ -229,10 +229,12 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
               Taille unique
             </label>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Qté minimum de commande</label>
-            <input type="number" min={1} value={form.min_order_qty} onChange={(e) => update('min_order_qty', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
-          </div>
+          {form.sale_type === 'gros' && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Qté minimum de commande</label>
+              <input type="number" min={1} value={form.min_order_qty} onChange={(e) => update('min_order_qty', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
+            </div>
+          )}
         </div>
 
         <div className="mb-4">

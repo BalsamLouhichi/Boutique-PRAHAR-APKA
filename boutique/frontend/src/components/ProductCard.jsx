@@ -57,7 +57,7 @@ export default function ProductCard({ product }) {
           {hasPromo(product) && <span className="text-sm text-[var(--color-muted)] line-through">{formatPrice(product.price)}</span>}
           {hasPromo(product) && <span className="text-xs font-semibold text-[var(--color-sage)]">Promo</span>}
         </div>
-        {lowStock && <p className="mb-3 -mt-2 text-xs font-medium text-[var(--color-amber-dark)]">Plus que {stock} en stock</p>}
+        {lowStock && <p className="mb-3 -mt-2 text-xs font-medium text-[var(--color-amber-dark)]">{stock} pièces restantes</p>}
 
         <div className="mb-4 space-y-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)] px-3 py-2.5 text-sm">
           {product.colors?.length > 0 && (
