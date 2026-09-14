@@ -131,7 +131,7 @@ export default function Home() {
         {[
           { label: 'Pazar lideri', value: '#1' },
           { label: "Katalogdaki ürünler", value: '150+' },
-          { label: 'İş ortağı mağaza', value: '300+' },
+          { label: 'İş ortağı mağaza', value: '5000+' },
         ].map((stat) => (
           <div key={stat.label} className="text-center p-6 rounded-2xl bg-white border border-[var(--color-line)]">
             <p className="font-display text-4xl text-[var(--color-amber-dark)] mb-1">{stat.value}</p>
