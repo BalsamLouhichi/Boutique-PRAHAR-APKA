@@ -40,25 +40,12 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {wholesaleName ? (
-            <Link
-              to="/gros/catalogue"
-              className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-line)] pl-1.5 pr-3 py-1 hover:border-[var(--color-amber)] transition-colors"
-              title="Accéder à l'espace grossiste"
-            >
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs font-semibold">
-                {wholesaleName.charAt(0).toUpperCase()}
-              </span>
-              <span className="text-sm font-medium text-[var(--color-ink)] max-w-[140px] truncate">{wholesaleName}</span>
-            </Link>
-          ) : (
-            <Link
-              to="/gros"
-              className="hidden sm:inline-block bg-[var(--color-ink)] text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[var(--color-ink-light)] transition-colors"
-            >
-              Acheter en gros
-            </Link>
-          )}
+          <Link
+            to="/gros"
+            className="hidden sm:inline-block bg-[var(--color-ink)] text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[var(--color-ink-light)] transition-colors"
+          >
+            Acheter en gros
+          </Link>
 
           <button
             onClick={() => setIsOpen(true)}
@@ -76,6 +63,19 @@ export default function Navbar() {
               </span>
             )}
           </button>
+
+          {wholesaleName && (
+            <Link
+              to="/gros/catalogue"
+              className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-line)] pl-1.5 pr-3 py-1 hover:border-[var(--color-amber)] transition-colors"
+              title="Accéder à l'espace grossiste"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs font-semibold">
+                {wholesaleName.charAt(0).toUpperCase()}
+              </span>
+              <span className="text-sm font-medium text-[var(--color-ink)] max-w-[140px] truncate">{wholesaleName}</span>
+            </Link>
+          )}
         </div>
       </div>
     </header>
