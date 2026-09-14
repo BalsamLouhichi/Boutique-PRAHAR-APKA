@@ -1,10 +1,16 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
+import { getWholesaleAccount, getWholesaleDisplayName } from '../utils/wholesaleAccount.js';
 
 export default function Navbar() {
   const { totalItems, setIsOpen } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
+  // Lu une fois au montage : suffisant car ce composant est remonté à chaque
+  // fois qu'on revient sur le site public depuis /gros/catalogue.
+  const [wholesaleAccount] = useState(getWholesaleAccount);
+  const wholesaleName = getWholesaleDisplayName(wholesaleAccount);
 
   const linkClass = (path) =>
     `text-sm font-medium transition-colors ${
@@ -34,12 +40,25 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link
-            to="/gros"
-            className="hidden sm:inline-block bg-[var(--color-ink)] text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[var(--color-ink-light)] transition-colors"
-          >
-            Acheter en gros
-          </Link>
+          {wholesaleName ? (
+            <Link
+              to="/gros/catalogue"
+              className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-line)] pl-1.5 pr-3 py-1 hover:border-[var(--color-amber)] transition-colors"
+              title="Accéder à l'espace grossiste"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs font-semibold">
+                {wholesaleName.charAt(0).toUpperCase()}
+              </span>
+              <span className="text-sm font-medium text-[var(--color-ink)] max-w-[140px] truncate">{wholesaleName}</span>
+            </Link>
+          ) : (
+            <Link
+              to="/gros"
+              className="hidden sm:inline-block bg-[var(--color-ink)] text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[var(--color-ink-light)] transition-colors"
+            >
+              Acheter en gros
+            </Link>
+          )}
 
           <button
             onClick={() => setIsOpen(true)}

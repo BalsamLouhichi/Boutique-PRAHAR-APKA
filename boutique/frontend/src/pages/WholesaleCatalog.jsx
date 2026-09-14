@@ -5,30 +5,7 @@ import WholesaleProductCard from '../components/WholesaleProductCard.jsx';
 import WholesaleFilterSidebar from '../components/WholesaleFilterSidebar.jsx';
 import WholesaleCartDrawer from '../components/WholesaleCartDrawer.jsx';
 import { useWholesaleCart } from '../context/WholesaleCartContext.jsx';
-
-// Le JWT contient déjà companyName (voir POST /api/wholesale/login) : ça sert
-// de repli pour les sessions ouvertes avant l'ajout de ce badge, sans obliger
-// à se reconnecter.
-function decodeJwtPayload(token) {
-  try {
-    const base64 = token.split('.')[1].replaceAll('-', '+').replaceAll('_', '/');
-    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-    return JSON.parse(new TextDecoder().decode(bytes));
-  } catch {
-    return null;
-  }
-}
-
-function readWholesaleAccount() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('wholesale_account') || 'null');
-    if (stored) return stored;
-  } catch {
-    // ignore, on retombe sur le JWT
-  }
-  const payload = decodeJwtPayload(localStorage.getItem('wholesale_token') || '');
-  return payload?.companyName ? { company_name: payload.companyName } : null;
-}
+import { getWholesaleAccount, getWholesaleDisplayName } from '../utils/wholesaleAccount.js';
 
 export default function WholesaleCatalog() {
   const [products, setProducts] = useState([]);
@@ -36,12 +13,12 @@ export default function WholesaleCatalog() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({ category: '', season: '', gender: '' });
-  const [account] = useState(readWholesaleAccount);
+  const [account] = useState(getWholesaleAccount);
   const { totalItems, setIsOpen } = useWholesaleCart();
   const navigate = useNavigate();
 
-  const displayName = account?.contact_name || account?.company_name || '';
-  const initial = displayName.trim().charAt(0).toUpperCase() || '?';
+  const displayName = getWholesaleDisplayName(account);
+  const initial = displayName.charAt(0).toUpperCase() || '?';
 
   useEffect(() => {
     setLoading(true);
