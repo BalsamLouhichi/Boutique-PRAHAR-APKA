@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 
 export default function WholesaleAuth() {
@@ -51,6 +51,12 @@ export default function WholesaleAuth() {
     } finally {
       setRegLoading(false);
     }
+  }
+
+  // Déjà connecté (token présent) : direct au catalogue, inutile de repasser
+  // par le formulaire de connexion. Après tous les hooks (règles de React).
+  if (localStorage.getItem('wholesale_token')) {
+    return <Navigate to="/gros/catalogue" replace />;
   }
 
   return (
