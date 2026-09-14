@@ -79,7 +79,7 @@ router.get('/', async (req, res) => {
     params.push(limit, offset);
     const result = await pool.query(
       `SELECT p.id, p.reference, p.name, p.slug, p.description, p.season, p.gender, p.sale_type,
-              p.min_order_qty, p.colors, p.sizes, p.material, p.price, p.promo_price,
+              p.min_order_qty, p.stock_quantity, p.colors, p.sizes, p.material, p.price, p.promo_price,
               p.is_new, p.is_featured, c.name AS category_name, c.slug AS category_slug,
               (SELECT image_url FROM product_images pi WHERE pi.product_id = p.id
                  ORDER BY pi.is_primary DESC, pi.created_at DESC, pi.display_order ASC LIMIT 1) AS primary_image
@@ -200,6 +200,8 @@ router.post(
       .withMessage('Le prix doit être supérieur à zéro pour un article en détail.'),
     body('promo_price').optional({ nullable: true, checkFalsy: true }).isFloat({ gt: 0 })
       .custom((value, { req }) => req.body.sale_type === 'gros' || Number(value) < Number(req.body.price)).withMessage('Le prix promo doit être inférieur au prix normal.'),
+    body('stock_quantity').optional({ nullable: true, checkFalsy: true }).isInt({ min: 0 })
+      .withMessage('La quantité en stock doit être un nombre entier positif ou nul.'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -207,18 +209,18 @@ router.post(
 
     const {
       reference, name, slug, description, category_id, season, gender, sale_type,
-        min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive,
+        min_order_qty, stock_quantity, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive,
     } = req.body;
 
     try {
       const result = await pool.query(
         `INSERT INTO products
           (reference, name, slug, description, category_id, season, gender, sale_type,
-            min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive, created_by)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+            min_order_qty, stock_quantity, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive, created_by)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
         [
           reference || null, name, slug, description || null, category_id, season, gender, sale_type || 'detail',
-          min_order_qty || 1, colors || [], sizes || [], material || null, Number(price) || 0,
+          min_order_qty || 1, Number(stock_quantity) || 0, colors || [], sizes || [], material || null, Number(price) || 0,
            sale_type === 'gros' || promo_price == null || promo_price === '' ? null : Number(promo_price), !!is_new, !!is_featured, !!is_exclusive, req.admin.id,
         ]
       );
@@ -236,7 +238,7 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
   const { id } = req.params;
   const {
     reference, name, slug, description, category_id, season, gender, sale_type,
-    min_order_qty, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive, is_active,
+    min_order_qty, stock_quantity, colors, sizes, material, price, promo_price, is_new, is_featured, is_exclusive, is_active,
   } = req.body;
 
   if (!['hiver', 'ete'].includes(season)) {
@@ -249,17 +251,20 @@ router.put('/:id', authenticateAdmin, async (req, res) => {
   if (sale_type === 'detail' && (!(Number(price) > 0) || (promo_price != null && promo_price !== '' && !(Number(promo_price) > 0 && Number(promo_price) < Number(price))))) {
     return res.status(400).json({ error: 'Le prix doit être supérieur à zéro et le prix promo doit être inférieur au prix normal.' });
   }
+  if (stock_quantity != null && stock_quantity !== '' && (!Number.isInteger(Number(stock_quantity)) || Number(stock_quantity) < 0)) {
+    return res.status(400).json({ error: 'La quantité en stock doit être un nombre entier positif ou nul.' });
+  }
 
   try {
     const result = await pool.query(
       `UPDATE products SET
         reference=$1, name=$2, slug=$3, description=$4, category_id=$5, season=$6, gender=$7, sale_type=$8,
-        min_order_qty=$9, colors=$10, sizes=$11, material=$12, price=$13, promo_price=$14,
-        is_new=$15, is_featured=$16, is_exclusive=$17, is_active=$18
-             WHERE id=$19 RETURNING *`,
+        min_order_qty=$9, stock_quantity=$10, colors=$11, sizes=$12, material=$13, price=$14, promo_price=$15,
+        is_new=$16, is_featured=$17, is_exclusive=$18, is_active=$19
+             WHERE id=$20 RETURNING *`,
       [
         reference, name, slug, description, category_id, season, gender, sale_type,
-        min_order_qty, colors, sizes, material, Number(price) || 0,
+        min_order_qty, Number(stock_quantity) || 0, colors, sizes, material, Number(price) || 0,
         sale_type === 'gros' || promo_price == null || promo_price === '' ? null : Number(promo_price),
         !!is_new, !!is_featured, !!is_exclusive, is_active !== false, id,
       ]

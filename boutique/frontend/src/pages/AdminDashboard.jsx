@@ -328,6 +328,7 @@ export default function AdminDashboard() {
                   <th className="px-4 py-3 font-semibold">Saison</th>
                   <th className="px-4 py-3 font-semibold">Genre</th>
                   <th className="px-4 py-3 font-semibold">Canal</th>
+                  <th className="px-4 py-3 font-semibold">Stock</th>
                   <th className="px-4 py-3 font-semibold">Statut</th>
                   <th className="px-4 py-3 font-semibold">Actions</th>
                 </tr>
@@ -346,6 +347,15 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3">{p.gender}</td>
                     <td className="px-4 py-3"><span className="rounded-full bg-[var(--color-paper)] px-2 py-1 text-xs font-medium">{p.sale_type === 'gros' ? 'Gros' : 'Détail'}</span></td>
                     <td className="px-4 py-3">
+                      {p.sale_type === 'gros' ? (
+                        <span className="text-[var(--color-muted)]">—</span>
+                      ) : (
+                        <span className={`font-medium ${p.stock_quantity <= 0 ? 'text-red-600' : p.stock_quantity <= 5 ? 'text-[var(--color-amber-dark)]' : 'text-[var(--color-ink)]'}`}>
+                          {p.stock_quantity <= 0 ? 'Rupture' : p.stock_quantity}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs ${p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                         {p.is_active ? 'Visible' : 'Masqué'}
                       </span>
@@ -359,7 +369,7 @@ export default function AdminDashboard() {
                   </tr>
                 ))}
                 {filteredProducts.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-10 text-center text-[var(--color-muted)]">Aucun article ne correspond à cette recherche.</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-10 text-center text-[var(--color-muted)]">Aucun article ne correspond à cette recherche.</td></tr>
                 )}
               </tbody>
             </table>

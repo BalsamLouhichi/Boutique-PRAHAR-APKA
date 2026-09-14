@@ -14,6 +14,10 @@ export default function ProductCard({ product }) {
   const [color, setColor] = useState(product.colors?.[0] || '');
   const [size, setSize] = useState(product.sizes?.[0] || '');
   const [showOptions, setShowOptions] = useState(false);
+  // stock_quantity absent (ancien cache navigateur) => on ne bloque pas la vente.
+  const stock = product.stock_quantity;
+  const outOfStock = stock != null && stock <= 0;
+  const lowStock = stock != null && stock > 0 && stock <= 5;
 
   return (
     <div className="group w-full min-w-0 h-full bg-white rounded-2xl border border-[var(--color-line)] overflow-hidden hover:shadow-lg hover:border-[var(--color-amber)] transition-all flex flex-col">
@@ -28,7 +32,11 @@ export default function ProductCard({ product }) {
             Photo à venir
           </div>
         )}
-        {product.is_new && (
+        {outOfStock ? (
+          <span className="absolute top-3 left-3 bg-red-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+            Rupture de stock
+          </span>
+        ) : product.is_new && (
           <span className="absolute top-3 left-3 bg-[var(--color-sage)] text-white text-xs font-semibold px-2.5 py-1 rounded-full">
             Nouveau
           </span>
@@ -49,6 +57,7 @@ export default function ProductCard({ product }) {
           {hasPromo(product) && <span className="text-sm text-[var(--color-muted)] line-through">{formatPrice(product.price)}</span>}
           {hasPromo(product) && <span className="text-xs font-semibold text-[var(--color-sage)]">Promo</span>}
         </div>
+        {lowStock && <p className="mb-3 -mt-2 text-xs font-medium text-[var(--color-amber-dark)]">Plus que {stock} en stock</p>}
 
         <div className="mb-4 space-y-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-paper)] px-3 py-2.5 text-sm">
           {product.colors?.length > 0 && (
@@ -67,7 +76,14 @@ export default function ProductCard({ product }) {
 
         <Link to={`/produit/${product.slug}`} className="mb-3 text-center text-sm font-semibold text-[var(--color-amber-dark)] hover:underline">Voir les détails</Link>
 
-        {!showOptions ? (
+        {outOfStock ? (
+          <button
+            disabled
+            className="mt-auto w-full border border-[var(--color-line)] text-[var(--color-muted)] font-medium py-2 rounded-lg text-sm cursor-not-allowed"
+          >
+            Rupture de stock
+          </button>
+        ) : !showOptions ? (
           <button
             onClick={() => setShowOptions(true)}
             className="mt-auto w-full border border-[var(--color-ink)] text-[var(--color-ink)] font-medium py-2 rounded-lg hover:bg-[var(--color-ink)] hover:text-white transition-colors text-sm"
@@ -90,8 +106,9 @@ export default function ProductCard({ product }) {
               <input
                 type="number"
                 min={1}
+                max={stock ?? undefined}
                 value={quantity}
-                onChange={(e) => setQuantity(Math.max(parseInt(e.target.value) || 1, 1))}
+                onChange={(e) => setQuantity(Math.min(Math.max(parseInt(e.target.value) || 1, 1), stock ?? Infinity))}
                 className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5"
               />
               <button

@@ -48,8 +48,11 @@ router.post(
       const resolvedItems = [];
 
       for (const it of items) {
+        // FOR UPDATE verrouille la ligne le temps de la transaction : deux
+        // commandes simultanées sur le même article ne peuvent pas survendre
+        // le stock restant.
         const productResult = await client.query(
-          'SELECT id, name, price, promo_price, is_active FROM products WHERE id = $1',
+          'SELECT id, name, price, promo_price, is_active, stock_quantity FROM products WHERE id = $1 FOR UPDATE',
           [it.product_id]
         );
         if (productResult.rows.length === 0 || !productResult.rows[0].is_active) {
@@ -58,8 +61,22 @@ router.post(
         const product = productResult.rows[0];
         const unitPrice = product.promo_price != null ? Number(product.promo_price) : Number(product.price);
         const quantity = parseInt(it.quantity) || 1;
+
+        if (product.stock_quantity < quantity) {
+          throw new Error(
+            product.stock_quantity > 0
+              ? `Stock insuffisant pour "${product.name}" : ${product.stock_quantity} disponible(s).`
+              : `"${product.name}" est en rupture de stock.`
+          );
+        }
+
         const lineTotal = unitPrice * quantity;
         subtotal += lineTotal;
+
+        await client.query(
+          'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2',
+          [quantity, product.id]
+        );
 
         resolvedItems.push({
           product_id: product.id,
@@ -188,16 +205,39 @@ router.put(
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
+    const client = await pool.connect();
     try {
-      const result = await pool.query(
+      await client.query('BEGIN');
+
+      const current = await client.query('SELECT status FROM orders WHERE id = $1 FOR UPDATE', [req.params.id]);
+      if (current.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Commande introuvable.' });
+      }
+
+      // Annulation : on remet le stock des articles de la commande, une seule
+      // fois (si elle n'était pas déjà annulée).
+      if (req.body.status === 'annulee' && current.rows[0].status !== 'annulee') {
+        await client.query(
+          `UPDATE products p SET stock_quantity = p.stock_quantity + oi.quantity
+             FROM order_items oi
+            WHERE oi.order_id = $1 AND oi.product_id = p.id`,
+          [req.params.id]
+        );
+      }
+
+      const result = await client.query(
         'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
         [req.body.status, req.params.id]
       );
-      if (result.rows.length === 0) return res.status(404).json({ error: 'Commande introuvable.' });
+      await client.query('COMMIT');
       res.json(result.rows[0]);
     } catch (err) {
+      await client.query('ROLLBACK');
       console.error(err);
       res.status(500).json({ error: 'Erreur serveur.' });
+    } finally {
+      client.release();
     }
   }
 );

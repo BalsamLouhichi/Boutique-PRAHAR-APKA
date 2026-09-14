@@ -21,6 +21,7 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
     season: product?.season || 'ete',
     gender: product?.gender || 'unisexe',
     min_order_qty: product?.min_order_qty || 1,
+    stock_quantity: product?.stock_quantity ?? 0,
     price: product?.price ?? '',
     promo_price: product?.promo_price ?? '',
     colors: product?.colors?.join(', ') || '',
@@ -98,6 +99,7 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
         is_exclusive: form.sale_type === 'gros' ? form.is_exclusive : false,
         category_id: parseInt(form.category_id),
         min_order_qty: parseInt(form.min_order_qty) || 1,
+        stock_quantity: Math.max(parseInt(form.stock_quantity) || 0, 0),
         colors: form.colors.split(',').map((s) => s.trim()).filter(Boolean),
         sizes: singleSize ? ['Taille unique'] : form.sizes.split(',').map((s) => s.trim()).filter(Boolean),
       };
@@ -163,7 +165,7 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
           />
         </div>
 
-        {form.sale_type === 'detail' ? <div className="grid grid-cols-2 gap-4 mb-4">
+        {form.sale_type === 'detail' ? <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium mb-1">Prix de vente (TRY) *</label>
             <input required type="number" min="0.01" step="0.01" value={form.price} onChange={(e) => update('price', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
@@ -172,7 +174,12 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
             <label className="block text-sm font-medium mb-1">Prix promo (TRY)</label>
             <input type="number" min={0} step="0.01" value={form.promo_price} onChange={(e) => update('promo_price', e.target.value)} placeholder="Optionnel" className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
           </div>
-        </div> : <div className="mb-4 rounded-xl border border-[var(--color-amber)]/30 bg-[var(--color-paper)] px-4 py-3 text-sm text-[var(--color-muted)]">Les articles en gros sont proposés sur devis. Aucun prix de vente n’est requis ici.</div>}
+          <div>
+            <label className="block text-sm font-medium mb-1">Quantité en stock *</label>
+            <input required type="number" min={0} step="1" value={form.stock_quantity} onChange={(e) => update('stock_quantity', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
+            <p className="mt-1 text-xs text-[var(--color-muted)]">0 = rupture de stock, l'article s'affiche mais ne peut plus être commandé.</p>
+          </div>
+        </div> : <div className="mb-4 rounded-xl border border-[var(--color-amber)]/30 bg-[var(--color-paper)] px-4 py-3 text-sm text-[var(--color-muted)]">Les articles en gros sont proposés sur devis. Aucun prix de vente ni stock n’est requis ici.</div>}
 
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div>

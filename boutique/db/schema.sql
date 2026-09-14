@@ -55,6 +55,7 @@ CREATE TABLE products (
 
     -- Infos commerciales (vente en gros, pas de paiement en ligne)
     min_order_qty   INTEGER NOT NULL DEFAULT 1,      -- quantité minimale de commande
+    stock_quantity  INTEGER NOT NULL DEFAULT 0,      -- stock disponible (articles en détail)
     colors          TEXT[],                          -- ex: {'Noir','Gris','Bleu'}
     sizes           TEXT[],                          -- ex: {'S','M','L','XL'} ou {'Taille unique'}
     material        VARCHAR(150),
