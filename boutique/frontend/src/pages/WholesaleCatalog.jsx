@@ -6,6 +6,7 @@ import WholesaleFilterSidebar from '../components/WholesaleFilterSidebar.jsx';
 import WholesaleCartDrawer from '../components/WholesaleCartDrawer.jsx';
 import { useWholesaleCart } from '../context/WholesaleCartContext.jsx';
 import { getWholesaleAccount, getWholesaleDisplayName } from '../utils/wholesaleAccount.js';
+import { navIconBtnClass as iconBtnClass, BackIcon, CartIcon, LogoutIcon } from '../components/NavIcons.jsx';
 
 export default function WholesaleCatalog() {
   const [products, setProducts] = useState([]);
@@ -41,40 +42,40 @@ export default function WholesaleCatalog() {
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)]">
-      <header className="bg-white border-b border-[var(--color-line)] sticky top-0 z-30">
+      <header className="sticky top-0 z-30 bg-[var(--color-ink)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <Link
               to="/"
-              className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-muted)] hover:text-[var(--color-ink)] transition-colors shrink-0"
+              className="flex items-center gap-1.5 text-sm font-medium text-white/70 hover:text-white transition-colors shrink-0"
               title="Retour au site"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
+              <BackIcon />
               <span className="hidden sm:inline">Retour au site</span>
             </Link>
-            <span className="hidden md:block font-display text-xl truncate">Catalogue en gros</span>
+            <span className="hidden md:block font-display text-xl text-white truncate">Catalogue en gros</span>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {displayName && (
               <div
-                className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-line)] pl-1.5 pr-3 py-1"
+                className="hidden sm:flex items-center gap-2 rounded-full bg-white/10 pl-1.5 pr-3 py-1"
                 title={account?.company_name && account.company_name !== displayName ? account.company_name : undefined}
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs font-semibold">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-amber)] text-[var(--color-ink)] text-xs font-bold">
                   {initial}
                 </span>
-                <span className="text-sm font-medium text-[var(--color-ink)] max-w-[140px] truncate">{displayName}</span>
+                <span className="text-sm font-medium text-white max-w-[140px] truncate">{displayName}</span>
               </div>
             )}
-            <button onClick={() => setIsOpen(true)} className="relative border border-[var(--color-line)] rounded-full px-4 py-2 text-sm font-medium hover:border-[var(--color-amber)]">
-              Panier
+            <button onClick={() => setIsOpen(true)} className={`relative ${iconBtnClass}`} aria-label="Ouvrir le panier" title="Panier">
+              <CartIcon />
               {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-[var(--color-amber)] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">{totalItems}</span>
+                <span className="absolute -top-1 -right-1 bg-[var(--color-amber)] text-[var(--color-ink)] text-[10px] font-bold w-[18px] h-[18px] rounded-full flex items-center justify-center">{totalItems}</span>
               )}
             </button>
-            <button onClick={handleLogout} className="text-sm text-[var(--color-muted)] hover:underline">Déconnexion</button>
+            <button onClick={handleLogout} className={iconBtnClass} aria-label="Déconnexion" title="Déconnexion">
+              <LogoutIcon />
+            </button>
           </div>
         </div>
       </header>
