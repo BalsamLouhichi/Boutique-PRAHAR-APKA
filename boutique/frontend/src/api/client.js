@@ -13,6 +13,14 @@ export function resolveImageUrl(url) {
   return `${BASE_URL}${url}`;
 }
 
+// URL d'une bannière personnalisée (tuiles "Achetez par profil"). Le
+// timestamp évite que le navigateur garde en cache l'ancienne image après un
+// remplacement depuis l'admin.
+export function siteImageUrl(key, version) {
+  const query = version ? `?v=${version}` : '';
+  return `${BASE_URL}/api/settings/images/${key}${query}`;
+}
+
 async function request(path, { method = 'GET', body, auth = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
@@ -77,6 +85,19 @@ export const api = {
   updateCategory: (id, payload) => request(`/categories/${id}`, { method: 'PUT', body: payload, auth: true }),
   deleteCategory: (id) => request(`/categories/${id}`, { method: 'DELETE', auth: true }),
   updateSetting: (key, value) => request(`/settings/${key}`, { method: 'PUT', body: { value }, auth: true }),
+  uploadSiteImage: async (key, file) => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('image', file);
+    const res = await fetch(`${BASE_URL}/api/settings/images/${key}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    if (!res.ok) throw new Error('Échec de l\'envoi de l\'image.');
+    return res.json();
+  },
+  deleteSiteImage: (key) => request(`/settings/images/${key}`, { method: 'DELETE', auth: true }),
 
   // Commandes
   createOrder: (payload) => request('/orders', { method: 'POST', body: payload }),

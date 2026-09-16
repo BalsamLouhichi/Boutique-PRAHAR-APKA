@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { api, resolveImageUrl } from '../api/client.js';
 import ProductForm from '../components/admin/ProductForm.jsx';
+import SiteImagesPanel from '../components/admin/SiteImagesPanel.jsx';
 import { formatPrice } from '../utils/price.js';
 
 const AMBER = '#D98E3F';
@@ -291,6 +292,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </section>}
+
+            {!isArticleManagement && <div className="mb-8"><SiteImagesPanel /></div>}
 
             {isArticleManagement && <>
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
