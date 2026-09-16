@@ -3,22 +3,49 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import { getWholesaleAccount, getWholesaleDisplayName } from '../utils/wholesaleAccount.js';
 
+const iconBtnClass = 'flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors';
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  );
+}
+
+function CartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293A1 1 0 005 17h12" />
+      <circle cx="9" cy="20" r="1" /><circle cx="18" cy="20" r="1" />
+    </svg>
+  );
+}
+
 export default function Navbar() {
   const { totalItems, setIsOpen } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
-  // Lu une fois au montage : suffisant car ce composant est remonté à chaque
-  // fois qu'on revient sur le site public depuis /gros/catalogue.
-  const [wholesaleAccount] = useState(getWholesaleAccount);
+  const [wholesaleAccount, setWholesaleAccount] = useState(getWholesaleAccount);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const wholesaleName = getWholesaleDisplayName(wholesaleAccount);
 
   const linkClass = (path) =>
     `text-sm font-medium transition-colors ${
-      location.pathname === path ? 'text-[var(--color-amber-dark)]' : 'text-[var(--color-ink)] hover:text-[var(--color-amber-dark)]'
+      location.pathname === path ? 'text-[var(--color-amber)]' : 'text-white/85 hover:text-white'
     }`;
 
   function goToAbout(event) {
     event.preventDefault();
+    setAccountMenuOpen(false);
     if (location.pathname === '/') {
       document.getElementById('a-propos')?.scrollIntoView({ behavior: 'smooth' });
       return;
@@ -26,56 +53,101 @@ export default function Navbar() {
     navigate('/#a-propos');
   }
 
+  function handleWholesaleLogout() {
+    localStorage.removeItem('wholesale_token');
+    localStorage.removeItem('wholesale_account');
+    setWholesaleAccount(null);
+    setAccountMenuOpen(false);
+    navigate('/');
+  }
+
   return (
-    <header className="sticky top-0 z-40 bg-[var(--color-surface)]/95 backdrop-blur border-b border-[var(--color-line)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="font-display text-2xl font-semibold text-[var(--color-ink)]">PRAHAR ŞAPKA</span>
+    <header className="sticky top-0 z-40 bg-[var(--color-ink)]">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          <span className="font-display text-2xl font-semibold text-white">PRAHAR ŞAPKA</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
           <Link to="/" className={linkClass('/')}>Accueil</Link>
           <Link to="/boutique" className={linkClass('/boutique')}>Catalogue</Link>
-          <a href="/#a-propos" onClick={goToAbout} className="text-sm font-medium text-[var(--color-ink)] hover:text-[var(--color-amber-dark)]">À propos</a>
+          <a href="/#a-propos" onClick={goToAbout} className="text-sm font-medium text-white/85 hover:text-white transition-colors">À propos</a>
         </nav>
 
-        <div className="flex items-center gap-3">
-          <Link
-            to="/gros"
-            className="hidden sm:inline-block bg-[var(--color-ink)] text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-[var(--color-ink-light)] transition-colors"
-          >
-            Acheter en gros
+        <div className="flex items-center gap-2 shrink-0">
+          <Link to="/boutique" className={iconBtnClass} aria-label="Rechercher un article" title="Rechercher">
+            <SearchIcon />
           </Link>
 
-          <button
-            onClick={() => setIsOpen(true)}
-            className="relative flex items-center gap-2 rounded-full border border-[var(--color-line)] px-4 py-2 text-sm font-medium hover:border-[var(--color-amber)] transition-colors"
-            aria-label="Ouvrir le panier"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293A1 1 0 005 17h12" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/>
-            </svg>
-            Panier
+          <div className="relative">
+            <button
+              onClick={() => setAccountMenuOpen((open) => !open)}
+              className={iconBtnClass}
+              aria-label="Mon compte"
+              aria-expanded={accountMenuOpen}
+              title="Mon compte"
+            >
+              {wholesaleName ? (
+                <span className="flex h-full w-full items-center justify-center rounded-full bg-[var(--color-amber)] text-[var(--color-ink)] text-xs font-bold">
+                  {wholesaleName.charAt(0).toUpperCase()}
+                </span>
+              ) : (
+                <UserIcon />
+              )}
+            </button>
+
+            {accountMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setAccountMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 w-60 rounded-xl border border-[var(--color-line)] bg-white shadow-xl z-50 py-2 overflow-hidden">
+                  {wholesaleName ? (
+                    <>
+                      <div className="px-4 py-3 border-b border-[var(--color-line)]">
+                        <p className="text-xs uppercase tracking-wide text-[var(--color-muted)] font-semibold">Espace grossiste</p>
+                        <p className="text-sm font-medium text-[var(--color-ink)] truncate mt-0.5">{wholesaleName}</p>
+                      </div>
+                      <Link
+                        to="/gros/catalogue"
+                        onClick={() => setAccountMenuOpen(false)}
+                        className="block px-4 py-2.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-paper)] transition-colors"
+                      >
+                        Catalogue en gros
+                      </Link>
+                      <button
+                        onClick={handleWholesaleLogout}
+                        className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-[var(--color-paper)] transition-colors"
+                      >
+                        Déconnexion
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="px-4 py-3 border-b border-[var(--color-line)]">
+                        <p className="text-sm font-medium text-[var(--color-ink)]">Espace professionnel</p>
+                        <p className="text-xs text-[var(--color-muted)] mt-0.5">Réservé aux boutiques et revendeurs</p>
+                      </div>
+                      <Link
+                        to="/gros"
+                        onClick={() => setAccountMenuOpen(false)}
+                        className="block px-4 py-2.5 text-sm text-[var(--color-ink)] hover:bg-[var(--color-paper)] transition-colors"
+                      >
+                        Acheter en gros
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          <button onClick={() => setIsOpen(true)} className={`relative ${iconBtnClass}`} aria-label="Ouvrir le panier" title="Panier">
+            <CartIcon />
             {totalItems > 0 && (
-              <span className="absolute -top-2 -right-2 bg-[var(--color-amber)] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-[var(--color-amber)] text-[var(--color-ink)] text-[10px] font-bold w-[18px] h-[18px] rounded-full flex items-center justify-center">
                 {totalItems}
               </span>
             )}
           </button>
-
-          {wholesaleName && (
-            <Link
-              to="/gros/catalogue"
-              className="hidden sm:flex items-center gap-2 rounded-full border border-[var(--color-line)] pl-1.5 pr-3 py-1 hover:border-[var(--color-amber)] transition-colors"
-              title="Accéder à l'espace grossiste"
-            >
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-ink)] text-white text-xs font-semibold">
-                {wholesaleName.charAt(0).toUpperCase()}
-              </span>
-              <span className="text-sm font-medium text-[var(--color-ink)] max-w-[140px] truncate">{wholesaleName}</span>
-            </Link>
-          )}
         </div>
       </div>
     </header>
