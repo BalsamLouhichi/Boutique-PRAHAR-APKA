@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import ProductCard from '../components/ProductCard.jsx';
 import WholesaleBanner from '../components/WholesaleBanner.jsx';
+import GenderShowcase from '../components/GenderShowcase.jsx';
 
 const galleryImages = Object.values(import.meta.glob('../assets/gallery/*.{jpg,jpeg,png,webp}', {
   eager: true,
@@ -139,6 +140,8 @@ export default function Home() {
           </div>
         ))}
       </section>
+
+      <GenderShowcase />
 
       {/* NOUVEAUTÉS - carrousel qui glisse */}
       {newProducts.length > 0 && (

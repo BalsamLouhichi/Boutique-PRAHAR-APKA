@@ -1,14 +1,24 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client.js';
 import ProductCard from '../components/ProductCard.jsx';
 import FilterSidebar from '../components/FilterSidebar.jsx';
 
 export default function Shop() {
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ category: '', season: '', gender: '', is_new: '' });
+  // Pré-rempli depuis l'URL (ex: /boutique?gender=femme depuis une tuile de
+  // l'accueil) — lu une seule fois au montage, l'utilisateur reste ensuite
+  // libre de changer les filtres normalement.
+  const [filters, setFilters] = useState(() => ({
+    category: searchParams.get('category') || '',
+    season: searchParams.get('season') || '',
+    gender: searchParams.get('gender') || '',
+    is_new: searchParams.get('is_new') || '',
+  }));
 
   useEffect(() => {
     setLoading(true);
