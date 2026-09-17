@@ -1,9 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, resolveImageUrl, siteImageUrl } from '../api/client.js';
+import { api, resolveImageUrl } from '../api/client.js';
 
-// Une tuile par genre. Photo choisie depuis l'admin en priorité
-// (site_images), sinon la première photo produit trouvée dans ce rayon.
+// Photo de chaque tuile : dépose un fichier src/assets/genders/<genre>.jpg
+// (ou .png/.webp) — ex: src/assets/genders/femme.jpg — et il remplace
+// automatiquement la photo produit ci-dessous, sans rien coder de plus.
+const genderImages = import.meta.glob('../assets/genders/*.{jpg,jpeg,png,webp}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+});
+
+function customImageFor(gender) {
+  const entry = Object.entries(genderImages).find(([path]) => path.includes(`/${gender}.`));
+  return entry ? entry[1] : null;
+}
+
 // Sur desktop (lg+) : grille 3 colonnes, Femme et Homme prennent toute la
 // hauteur, Enfant et Unisexe sont empilés au milieu.
 const GENDERS = [
@@ -12,41 +24,6 @@ const GENDERS = [
   { value: 'unisexe', label: 'Unisexe', desktopClass: 'lg:col-start-2 lg:row-start-2' },
   { value: 'homme', label: 'Homme', desktopClass: 'lg:col-start-3 lg:row-start-1 lg:row-span-2' },
 ];
-
-function GenderTile({ gender, label, desktopClass, fallbackSrc }) {
-  const [src, setSrc] = useState(() => siteImageUrl(gender));
-  const [triedFallback, setTriedFallback] = useState(false);
-  const [broken, setBroken] = useState(false);
-
-  function handleError() {
-    if (!triedFallback && fallbackSrc) {
-      setTriedFallback(true);
-      setSrc(fallbackSrc);
-    } else {
-      setBroken(true);
-    }
-  }
-
-  if (broken) return null;
-
-  return (
-    <Link
-      to={`/boutique?gender=${gender}`}
-      className={`group relative overflow-hidden rounded-2xl bg-[var(--color-paper)] aspect-[3/4] lg:aspect-auto ${desktopClass}`}
-    >
-      <img
-        src={src}
-        onError={handleError}
-        alt={label}
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/0 to-transparent" />
-      <span className="absolute bottom-4 left-4 bg-[var(--color-amber)] text-white text-sm font-semibold px-4 py-2 rounded-full shadow">
-        {label}
-      </span>
-    </Link>
-  );
-}
 
 export default function GenderShowcase() {
   const [coverByGender, setCoverByGender] = useState(null);
@@ -63,9 +40,13 @@ export default function GenderShowcase() {
       .catch(() => setCoverByGender({}));
   }, []);
 
-  // On attend d'avoir les photos produit (repli) avant d'afficher les tuiles,
-  // pour éviter un aller-retour visible (bannière -> repli) au chargement.
   if (!coverByGender) return null;
+
+  const tiles = GENDERS
+    .map((g) => ({ ...g, image: customImageFor(g.value) || coverByGender[g.value] }))
+    .filter((g) => g.image);
+
+  if (tiles.length < 3) return null; // pas assez de photos pour un rayon présentable
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
@@ -75,8 +56,22 @@ export default function GenderShowcase() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 lg:grid-rows-2 gap-4 lg:h-[520px]">
-        {GENDERS.map((g) => (
-          <GenderTile key={g.value} gender={g.value} label={g.label} desktopClass={g.desktopClass} fallbackSrc={coverByGender[g.value]} />
+        {tiles.map((g) => (
+          <Link
+            key={g.value}
+            to={`/boutique?gender=${g.value}`}
+            className={`group relative overflow-hidden rounded-2xl bg-[var(--color-paper)] aspect-[3/4] lg:aspect-auto ${g.desktopClass}`}
+          >
+            <img
+              src={g.image}
+              alt={g.label}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/0 to-transparent" />
+            <span className="absolute bottom-4 left-4 bg-[var(--color-amber)] text-white text-sm font-semibold px-4 py-2 rounded-full shadow">
+              {g.label}
+            </span>
+          </Link>
         ))}
       </div>
     </section>

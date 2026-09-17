@@ -154,19 +154,6 @@ INSERT INTO site_settings (key, value) VALUES
     ('brand_description', 'Türkiye genelindeki geniş dağıtım ağımızla, sektörün en güçlü ekosistemlerinden birini kurduk. Bugün, ulusal çaptaki iş ortaklarımızın %80’i, mağazalarında bizim ürünlerimizi ana koleksiyon olarak konumlandırmakta ve markamızın resmi temsilcisi olarak hareket etmektedir.');
 
 -- ---------------------------------------------------------------
--- Table: site_images
--- Bannières choisies à la main pour l'accueil (ex: tuiles "Achetez par
--- profil"). key fixe (femme/homme/enfant/unisexe) ; sans ligne pour une clé,
--- le front retombe sur une photo produit automatique.
--- ---------------------------------------------------------------
-CREATE TABLE site_images (
-    key             VARCHAR(50) PRIMARY KEY,
-    data            BYTEA NOT NULL,
-    content_type    VARCHAR(100) NOT NULL,
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- ---------------------------------------------------------------
 -- Trigger générique pour updated_at
 -- ---------------------------------------------------------------
 CREATE OR REPLACE FUNCTION set_updated_at()
