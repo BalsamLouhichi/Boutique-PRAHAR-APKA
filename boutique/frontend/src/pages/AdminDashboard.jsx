@@ -130,10 +130,10 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[var(--color-paper)] flex">
       <aside className="w-72 bg-[var(--color-ink)] text-white p-6 flex-shrink-0">
-        <div className="mb-8">
+        <Link to="/" className="mb-8 block hover:opacity-80 transition-opacity">
           <h1 className="font-display text-3xl">PRAHAR ŞAPKA</h1>
           <p className="mt-2 text-sm text-white/70">Admin panel</p>
-        </div>
+        </Link>
 
         <nav className="space-y-2">
           <Link to="/admin" className={`flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors ${!isArticleManagement ? 'bg-white/10 text-white font-medium' : 'text-white/80 hover:bg-white/10'}`}>
