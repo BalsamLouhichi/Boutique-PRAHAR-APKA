@@ -64,31 +64,40 @@ export default function AdminOrders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders]);
 
+  // "Vue" et "statut" sont deux informations séparées : ceci ne touche
+  // jamais `status`, uniquement `viewed_at`. Toujours appelé au serveur
+  // (idempotent côté backend) plutôt que de se fier à l'état local, pour ne
+  // pas rater le marquage si un appel précédent avait échoué en silence.
+  async function markViewed(id) {
+    try {
+      const res = await api.markOrderViewed(id);
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, viewed_at: res.viewed_at } : o)));
+      setSelectedOrder((o) => (o?.id === id ? { ...o, viewed_at: res.viewed_at } : o));
+    } catch (err) {
+      console.error('Impossible de marquer la commande comme vue :', err);
+    }
+  }
+
   async function openOrder(order) {
     setSelectedOrder(order);
-    const items = await api.getOrderItems(order.id).catch(() => []);
+    const items = await api.getOrderItems(order.id).catch((err) => { console.error(err); return []; });
     setOrderItems(items);
-
-    // Marque la commande comme vue : décrémente le badge de notification
-    // sans recharger toute la liste.
-    if (!order.viewed_at) {
-      api.markOrderViewed(order.id).then((res) => {
-        setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, viewed_at: res.viewed_at } : o)));
-        setSelectedOrder((o) => (o?.id === order.id ? { ...o, viewed_at: res.viewed_at } : o));
-      }).catch(() => {});
-    }
+    if (!order.viewed_at) await markViewed(order.id);
   }
 
   async function changeStatus(id, status) {
     await api.updateOrderStatus(id, status);
-    loadOrders();
-    if (selectedOrder?.id === id) setSelectedOrder((o) => ({ ...o, status }));
+    // Mise à jour immédiate, sans recharger toute la liste.
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+    setSelectedOrder((o) => (o?.id === id ? { ...o, status } : o));
+    // Changer le statut (ex. "En préparation") vaut aussi consultation.
+    await markViewed(id);
   }
 
   async function changePayment(id, payment_status) {
     await api.updateOrderPayment(id, payment_status);
-    loadOrders();
-    if (selectedOrder?.id === id) setSelectedOrder((o) => ({ ...o, payment_status }));
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, payment_status } : o)));
+    setSelectedOrder((o) => (o?.id === id ? { ...o, payment_status } : o));
   }
 
   function resetFilters() {
