@@ -11,7 +11,9 @@ const GENDER_LABELS = { homme: 'Homme', femme: 'Femme', enfant: 'Enfant', unisex
 
 export default function ProductCard({ product }) {
   const { addItem } = useCart();
-  const [quantity, setQuantity] = useState(1);
+  // Saisie libre (chaîne) : le client peut effacer le "1" par défaut et
+  // taper son propre nombre sans qu'on lui réécrive la valeur à chaque frappe.
+  const [quantity, setQuantity] = useState('1');
   const [color, setColor] = useState(product.colors?.[0] || '');
   const [size, setSize] = useState(product.sizes?.[0] || '');
   const [showOptions, setShowOptions] = useState(false);
@@ -25,10 +27,13 @@ export default function ProductCard({ product }) {
   const selectedStock = getVariantStock(product, color);
   const selectedOutOfStock = selectedStock != null && selectedStock <= 0;
 
+  const quantityNumber = parseInt(quantity, 10);
+  const quantityValid = quantity.trim() !== '' && Number.isInteger(quantityNumber) && quantityNumber >= 1;
+  const quantityExceedsStock = quantityValid && selectedStock != null && quantityNumber > selectedStock;
+  const canAddToCart = quantityValid && !quantityExceedsStock;
+
   function handleColorChange(newColor) {
     setColor(newColor);
-    const newStock = getVariantStock(product, newColor);
-    if (newStock != null && newStock > 0) setQuantity((q) => Math.min(q, newStock));
   }
 
   return (
@@ -117,24 +122,29 @@ export default function ProductCard({ product }) {
             {selectedOutOfStock ? (
               <p className="text-xs font-medium text-red-600">Rupture de stock pour cette couleur.</p>
             ) : (
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  max={selectedStock ?? undefined}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.min(Math.max(parseInt(e.target.value) || 1, 1), selectedStock ?? Infinity))}
-                  className="w-full text-sm border border-[var(--color-line)] rounded-lg px-2 py-1.5"
-                />
-                <button
-                  onClick={() => {
-                    addItem(product, quantity, color, size);
-                    setShowOptions(false);
-                  }}
-                  className="whitespace-nowrap bg-[var(--color-amber)] hover:bg-[var(--color-amber-dark)] text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors"
-                >
-                  Ajouter
-                </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={selectedStock ?? undefined}
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className={`w-full text-sm border rounded-lg px-2 py-1.5 ${quantityExceedsStock ? 'border-red-500' : 'border-[var(--color-line)]'}`}
+                  />
+                  <button
+                    disabled={!canAddToCart}
+                    onClick={() => {
+                      addItem(product, quantityNumber, color, size);
+                      setShowOptions(false);
+                      setQuantity('1');
+                    }}
+                    className="whitespace-nowrap bg-[var(--color-amber)] hover:bg-[var(--color-amber-dark)] text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-amber)]"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+                {quantityExceedsStock && <p className="mt-1 text-xs font-medium text-red-600">Hors stock ({selectedStock} disponible{selectedStock > 1 ? 's' : ''})</p>}
               </div>
             )}
           </div>

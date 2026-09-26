@@ -13,7 +13,9 @@ export default function ProductDetail() {
   const { addItem } = useCart();
   const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
+  // Saisie libre (chaîne) : le client peut effacer le "1" par défaut et
+  // taper son propre nombre sans qu'on lui réécrive la valeur à chaque frappe.
+  const [quantity, setQuantity] = useState('1');
   const [color, setColor] = useState('');
   const [size, setSize] = useState('');
   const [error, setError] = useState('');
@@ -46,9 +48,12 @@ export default function ProductDetail() {
 
   function handleColorChange(newColor) {
     setColor(newColor);
-    const newStock = getVariantStock(product, newColor);
-    if (newStock != null && newStock > 0) setQuantity((q) => Math.min(q, newStock));
   }
+
+  const quantityNumber = parseInt(quantity, 10);
+  const quantityValid = quantity.trim() !== '' && Number.isInteger(quantityNumber) && quantityNumber >= 1;
+  const quantityExceedsStock = quantityValid && selectedStock != null && quantityNumber > selectedStock;
+  const canAddToCart = quantityValid && !quantityExceedsStock;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -83,7 +88,30 @@ export default function ProductDetail() {
                 <p className="mt-2 text-sm text-red-600">Cette couleur n'est plus disponible.</p>
               </div>
             ) : (
-              <div className="flex gap-3"><input aria-label="Quantité" type="number" min={1} max={selectedStock ?? undefined} value={quantity} onChange={(e) => setQuantity(Math.min(Math.max(Number(e.target.value) || 1, 1), selectedStock ?? Infinity))} className="w-24 rounded-lg border border-[var(--color-line)] px-3 py-3" /><button onClick={() => addItem(product, quantity, color, size)} className="flex-1 rounded-lg bg-[var(--color-ink)] px-5 py-3 font-semibold text-white hover:bg-[var(--color-ink-light)]">Ajouter au panier</button></div>
+              <div>
+                <div className="flex gap-3">
+                  <input
+                    aria-label="Quantité"
+                    type="number"
+                    min={1}
+                    max={selectedStock ?? undefined}
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className={`w-24 rounded-lg border px-3 py-3 ${quantityExceedsStock ? 'border-red-500' : 'border-[var(--color-line)]'}`}
+                  />
+                  <button
+                    disabled={!canAddToCart}
+                    onClick={() => {
+                      addItem(product, quantityNumber, color, size);
+                      setQuantity('1');
+                    }}
+                    className="flex-1 rounded-lg bg-[var(--color-ink)] px-5 py-3 font-semibold text-white hover:bg-[var(--color-ink-light)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[var(--color-ink)]"
+                  >
+                    Ajouter au panier
+                  </button>
+                </div>
+                {quantityExceedsStock && <p className="mt-2 text-sm font-medium text-red-600">Hors stock ({selectedStock} disponible{selectedStock > 1 ? 's' : ''})</p>}
+              </div>
             )}
           </div>
         </section>

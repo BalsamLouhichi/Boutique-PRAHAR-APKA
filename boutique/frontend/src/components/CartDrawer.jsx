@@ -1,8 +1,60 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveImageUrl } from '../api/client.js';
 import { formatPrice } from '../utils/price.js';
+
+// Ligne de panier : saisie libre de la quantité, avec sa propre validation.
+// Tant que la valeur tapée dépasse le stock (ou n'est pas un nombre valide),
+// le panier garde l'ancienne quantité — on affiche juste "Hors stock" sous
+// le champ, sans réécrire ce que le client est en train de taper.
+function CartLineItem({ item, onUpdateQuantity, onRemove }) {
+  const [draft, setDraft] = useState(String(item.quantity));
+
+  useEffect(() => {
+    setDraft(String(item.quantity));
+  }, [item.quantity]);
+
+  const draftNumber = parseInt(draft, 10);
+  const isValidNumber = draft.trim() !== '' && Number.isInteger(draftNumber) && draftNumber >= 1;
+  const exceedsStock = isValidNumber && item.stock != null && draftNumber > item.stock;
+
+  function handleChange(value) {
+    setDraft(value);
+    const parsed = parseInt(value, 10);
+    if (value.trim() !== '' && Number.isInteger(parsed) && parsed >= 1 && (item.stock == null || parsed <= item.stock)) {
+      onUpdateQuantity(item.key, parsed);
+    }
+  }
+
+  return (
+    <li className="flex gap-3 border-b border-[var(--color-line)] pb-4">
+      <div className="w-16 h-16 rounded-lg bg-[var(--color-paper)] flex-shrink-0 overflow-hidden">
+        {item.image && <img src={resolveImageUrl(item.image)} alt={item.product_name} className="w-full h-full object-cover" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{item.product_name}</p>
+        <p className="text-sm font-semibold text-[var(--color-amber-dark)]">{formatPrice(item.unit_price)}</p>
+        {[item.color, item.size].filter(Boolean).length > 0 && (
+          <p className="text-xs text-[var(--color-muted)]">{[item.color, item.size].filter(Boolean).join(' · ')}</p>
+        )}
+        <div className="flex items-center gap-2 mt-2">
+          <label className="text-xs text-[var(--color-muted)]">Qté</label>
+          <input
+            type="number"
+            min={1}
+            max={item.stock ?? undefined}
+            value={draft}
+            onChange={(e) => handleChange(e.target.value)}
+            className={`w-20 border rounded px-2 py-1 text-sm ${exceedsStock ? 'border-red-500' : 'border-[var(--color-line)]'}`}
+          />
+        </div>
+        {exceedsStock && <p className="mt-1 text-xs font-medium text-red-600">Hors stock ({item.stock} disponible{item.stock > 1 ? 's' : ''})</p>}
+      </div>
+      <button onClick={() => onRemove(item.key)} className="text-xs text-red-500 hover:underline self-start" aria-label={`Retirer ${item.product_name}`}>Retirer</button>
+    </li>
+  );
+}
 
 export default function CartDrawer() {
   const { items, isOpen, setIsOpen, updateQuantity, removeItem, clearCart, totalItems, subtotal } = useCart();
@@ -28,23 +80,7 @@ export default function CartDrawer() {
           ) : (
             <ul className="space-y-4">
               {items.map((it) => (
-                <li key={it.key} className="flex gap-3 border-b border-[var(--color-line)] pb-4">
-                  <div className="w-16 h-16 rounded-lg bg-[var(--color-paper)] flex-shrink-0 overflow-hidden">
-                    {it.image && <img src={resolveImageUrl(it.image)} alt={it.product_name} className="w-full h-full object-cover" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{it.product_name}</p>
-                    <p className="text-sm font-semibold text-[var(--color-amber-dark)]">{formatPrice(it.unit_price)}</p>
-                    {[it.color, it.size].filter(Boolean).length > 0 && (
-                      <p className="text-xs text-[var(--color-muted)]">{[it.color, it.size].filter(Boolean).join(' · ')}</p>
-                    )}
-                    <div className="flex items-center gap-2 mt-2">
-                      <label className="text-xs text-[var(--color-muted)]">Qté</label>
-                      <input type="number" min={1} value={it.quantity} onChange={(e) => updateQuantity(it.key, Math.max(parseInt(e.target.value) || 1, 1))} className="w-20 border border-[var(--color-line)] rounded px-2 py-1 text-sm" />
-                    </div>
-                  </div>
-                  <button onClick={() => removeItem(it.key)} className="text-xs text-red-500 hover:underline self-start" aria-label={`Retirer ${it.product_name}`}>Retirer</button>
-                </li>
+                <CartLineItem key={it.key} item={it} onUpdateQuantity={updateQuantity} onRemove={removeItem} />
               ))}
             </ul>
           )}
