@@ -4,6 +4,7 @@ import { api } from '../api/client.js';
 import ProductCard from '../components/ProductCard.jsx';
 import WholesaleBanner from '../components/WholesaleBanner.jsx';
 import GenderShowcase from '../components/GenderShowcase.jsx';
+import SeasonShowcase from '../components/SeasonShowcase.jsx';
 
 const galleryImages = Object.values(import.meta.glob('../assets/gallery/*.{jpg,jpeg,png,webp}', {
   eager: true,
@@ -142,6 +143,7 @@ export default function Home() {
       </section>
 
       <GenderShowcase />
+      <SeasonShowcase />
 
       {/* NOUVEAUTÉS - carrousel qui glisse */}
       {newProducts.length > 0 && (
