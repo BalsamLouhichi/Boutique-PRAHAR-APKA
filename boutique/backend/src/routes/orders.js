@@ -192,6 +192,21 @@ router.get('/', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Marque toutes les commandes non consultées comme vues (clic sur la cloche
+// de notification). Doit rester déclaré avant /:id/viewed pour ne pas être
+// intercepté par la route paramétrée.
+router.put('/viewed/all', authenticateAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'UPDATE orders SET viewed_at = now() WHERE viewed_at IS NULL RETURNING id, viewed_at'
+    );
+    res.json({ updated: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+
 // Marque une commande comme consultée (notifications admin). Idempotent :
 // ne réécrit pas la date si déjà vue.
 router.put('/:id/viewed', authenticateAdmin, async (req, res) => {

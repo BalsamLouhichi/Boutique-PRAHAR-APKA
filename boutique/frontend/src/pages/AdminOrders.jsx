@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { formatPrice } from '../utils/price.js';
 import OrderNotificationBell from '../components/admin/OrderNotificationBell.jsx';
@@ -21,6 +21,7 @@ export default function AdminOrders() {
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const activeOrders = orders.filter((order) => order.status !== 'annulee');
   const totalRevenue = activeOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
   const paidRevenue = orders.filter((order) => order.payment_status === 'paid').reduce((sum, order) => sum + Number(order.total || 0), 0);
@@ -51,6 +52,17 @@ export default function AdminOrders() {
   }
 
   useEffect(loadOrders, [statusFilter]);
+
+  // Ouverture directe depuis une notification (cloche) : navigate() passe
+  // l'id de la commande visée dans le state de l'historique.
+  useEffect(() => {
+    const targetId = location.state?.openOrderId;
+    if (!targetId || orders.length === 0) return;
+    const target = orders.find((o) => o.id === targetId);
+    if (target) openOrder(target);
+    navigate(location.pathname, { replace: true, state: {} });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
 
   async function openOrder(order) {
     setSelectedOrder(order);
@@ -135,7 +147,7 @@ export default function AdminOrders() {
           {(statusFilter || viewedFilter || dateFrom || dateTo || search) && (
             <button onClick={resetFilters} className="text-sm text-[var(--color-amber-dark)] hover:underline">Réinitialiser</button>
           )}
-          <OrderNotificationBell count={unviewedCount} />
+          <OrderNotificationBell orders={orders} onOrdersUpdated={loadOrders} />
         </div>
       </header>
 

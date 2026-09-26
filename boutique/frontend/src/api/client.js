@@ -86,6 +86,7 @@ export const api = {
   updateOrderStatus: (id, status) => request(`/orders/${id}/status`, { method: 'PUT', body: { status }, auth: true }),
   updateOrderPayment: (id, payment_status) => request(`/orders/${id}/payment`, { method: 'PUT', body: { payment_status }, auth: true }),
   markOrderViewed: (id) => request(`/orders/${id}/viewed`, { method: 'PUT', auth: true }),
+  markAllOrdersViewed: () => request('/orders/viewed/all', { method: 'PUT', auth: true }),
 
 
 
