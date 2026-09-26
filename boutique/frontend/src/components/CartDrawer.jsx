@@ -1,31 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import { resolveImageUrl } from '../api/client.js';
 import { formatPrice } from '../utils/price.js';
 
-// Ligne de panier : saisie libre de la quantité, avec sa propre validation.
-// Tant que la valeur tapée dépasse le stock (ou n'est pas un nombre valide),
-// le panier garde l'ancienne quantité — on affiche juste "Hors stock" sous
-// le champ, sans réécrire ce que le client est en train de taper.
+// Ligne de panier : quantité modifiable uniquement par les boutons +/- (pas
+// de saisie manuelle), bornée au stock connu pour cette couleur.
 function CartLineItem({ item, onUpdateQuantity, onRemove }) {
-  const [draft, setDraft] = useState(String(item.quantity));
-
-  useEffect(() => {
-    setDraft(String(item.quantity));
-  }, [item.quantity]);
-
-  const draftNumber = parseInt(draft, 10);
-  const isValidNumber = draft.trim() !== '' && Number.isInteger(draftNumber) && draftNumber >= 1;
-  const exceedsStock = isValidNumber && item.stock != null && draftNumber > item.stock;
-
-  function handleChange(value) {
-    setDraft(value);
-    const parsed = parseInt(value, 10);
-    if (value.trim() !== '' && Number.isInteger(parsed) && parsed >= 1 && (item.stock == null || parsed <= item.stock)) {
-      onUpdateQuantity(item.key, parsed);
-    }
-  }
+  const atMax = item.stock != null && item.quantity >= item.stock;
+  const atMin = item.quantity <= 1;
 
   return (
     <li className="flex gap-3 border-b border-[var(--color-line)] pb-4">
@@ -40,16 +23,29 @@ function CartLineItem({ item, onUpdateQuantity, onRemove }) {
         )}
         <div className="flex items-center gap-2 mt-2">
           <label className="text-xs text-[var(--color-muted)]">Qté</label>
-          <input
-            type="number"
-            min={1}
-            max={item.stock ?? undefined}
-            value={draft}
-            onChange={(e) => handleChange(e.target.value)}
-            className={`w-20 border rounded px-2 py-1 text-sm ${exceedsStock ? 'border-red-500' : 'border-[var(--color-line)]'}`}
-          />
+          <div className="flex items-center border border-[var(--color-line)] rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => onUpdateQuantity(item.key, item.quantity - 1)}
+              disabled={atMin}
+              aria-label="Diminuer la quantité"
+              className="w-7 h-7 flex items-center justify-center text-sm font-semibold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--color-paper)]"
+            >
+              −
+            </button>
+            <span className="w-8 text-center text-sm">{item.quantity}</span>
+            <button
+              type="button"
+              onClick={() => onUpdateQuantity(item.key, item.quantity + 1)}
+              disabled={atMax}
+              aria-label="Augmenter la quantité"
+              className="w-7 h-7 flex items-center justify-center text-sm font-semibold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--color-paper)]"
+            >
+              +
+            </button>
+          </div>
         </div>
-        {exceedsStock && <p className="mt-1 text-xs font-medium text-red-600">Hors stock ({item.stock} disponible{item.stock > 1 ? 's' : ''})</p>}
+        {atMax && <p className="mt-1 text-xs font-medium text-red-600">Stock maximum atteint</p>}
       </div>
       <button onClick={() => onRemove(item.key)} className="text-xs text-red-500 hover:underline self-start" aria-label={`Retirer ${item.product_name}`}>Retirer</button>
     </li>
