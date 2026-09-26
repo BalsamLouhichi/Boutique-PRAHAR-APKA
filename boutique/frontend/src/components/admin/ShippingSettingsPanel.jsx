@@ -65,7 +65,6 @@ export default function ShippingSettingsPanel() {
               onChange={(e) => { setThreshold(e.target.value); setSaved(false); }}
               className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm"
             />
-            <p className="mt-1 text-xs text-[var(--color-muted)]">0 = jamais de livraison gratuite.</p>
           </div>
           <div className="sm:col-span-2 flex items-center gap-3">
             <button type="submit" disabled={saving} className="bg-[var(--color-ink)] text-white px-5 py-2 rounded-lg text-sm font-semibold disabled:opacity-60">

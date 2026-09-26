@@ -7,6 +7,7 @@ import {
 import { api, resolveImageUrl } from '../api/client.js';
 import ProductForm from '../components/admin/ProductForm.jsx';
 import ShippingSettingsPanel from '../components/admin/ShippingSettingsPanel.jsx';
+import OrderNotificationBell from '../components/admin/OrderNotificationBell.jsx';
 import { formatPrice } from '../utils/price.js';
 
 const AMBER = '#D98E3F';
@@ -88,6 +89,7 @@ export default function AdminDashboard() {
   const revenue = activeOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
   const paidRevenue = orders.filter((order) => order.payment_status === 'paid').reduce((sum, order) => sum + Number(order.total || 0), 0);
   const newOrders = orders.filter((order) => order.status === 'nouvelle').length;
+  const unviewedOrders = useMemo(() => orders.filter((order) => !order.viewed_at).length, [orders]);
   const normalizedProductSearch = productSearch.trim().toLocaleLowerCase();
   const productsBySaleType = products.filter((product) => (product.sale_type || 'detail') === activeSaleType);
   const filteredProducts = normalizedProductSearch
@@ -186,6 +188,7 @@ export default function AdminDashboard() {
         ) : (
           <header className="bg-white border-b border-[var(--color-line)] px-6 py-4 flex items-center justify-between">
             <h2 className="font-display text-xl">Dashboard des statistiques</h2>
+            <OrderNotificationBell count={unviewedOrders} />
           </header>
         )}
 

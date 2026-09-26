@@ -192,6 +192,22 @@ router.get('/', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Marque une commande comme consultée (notifications admin). Idempotent :
+// ne réécrit pas la date si déjà vue.
+router.put('/:id/viewed', authenticateAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'UPDATE orders SET viewed_at = COALESCE(viewed_at, now()) WHERE id = $1 RETURNING viewed_at',
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Commande introuvable.' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erreur serveur.' });
+  }
+});
+
 // Détail d'une commande (admin)
 router.get('/admin/:id/items', authenticateAdmin, async (req, res) => {
   try {

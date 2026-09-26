@@ -65,6 +65,11 @@ CREATE TABLE IF NOT EXISTS orders (
     status               VARCHAR(20) NOT NULL DEFAULT 'nouvelle'
                             CHECK (status IN ('nouvelle', 'en_preparation', 'expediee', 'livree', 'annulee')),
 
+    -- NULL = pas encore consultée par l'admin (badge de notification).
+    -- Distinct de `status` : une commande peut être "vue" sans avoir changé
+    -- d'étape de traitement.
+    viewed_at            TIMESTAMPTZ,
+
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
