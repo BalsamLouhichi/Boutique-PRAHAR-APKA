@@ -151,7 +151,11 @@ CREATE TABLE site_settings (
 INSERT INTO site_settings (key, value) VALUES
     ('whatsapp_number', '21696839006'),
     ('brand_tagline', 'Le N°1 de la vente en gros de casquettes, bonnets et cache-cols'),
-    ('brand_description', 'Türkiye genelindeki geniş dağıtım ağımızla, sektörün en güçlü ekosistemlerinden birini kurduk. Bugün, ulusal çaptaki iş ortaklarımızın %80’i, mağazalarında bizim ürünlerimizi ana koleksiyon olarak konumlandırmakta ve markamızın resmi temsilcisi olarak hareket etmektedir.');
+    ('brand_description', 'Türkiye genelindeki geniş dağıtım ağımızla, sektörün en güçlü ekosistemlerinden birini kurduk. Bugün, ulusal çaptaki iş ortaklarımızın %80’i, mağazalarında bizim ürünlerimizi ana koleksiyon olarak konumlandırmakta ve markamızın resmi temsilcisi olarak hareket etmektedir.'),
+    -- Livraison (vente au détail) : frais appliqués par commande, et montant
+    -- à partir duquel elle devient gratuite (0 = jamais gratuite).
+    ('shipping_fee', '15'),
+    ('free_shipping_threshold', '300');
 
 -- ---------------------------------------------------------------
 -- Trigger générique pour updated_at

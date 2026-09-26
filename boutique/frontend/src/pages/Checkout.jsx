@@ -1,14 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import { api } from '../api/client.js';
 import { formatPrice } from '../utils/price.js';
-
-const SHIPPING_FEE = 0; // à ajuster une fois votre grille de livraison définie
+import { computeShipping } from '../utils/shipping.js';
 
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const navigate = useNavigate();
+  const [settings, setSettings] = useState({});
+
+  useEffect(() => {
+    api.getSettings().then(setSettings).catch(() => {});
+  }, []);
+
+  // Recalculé à chaque rendu : suit automatiquement le panier (quantités
+  // modifiées depuis le drawer) sans état séparé à synchroniser.
+  const shipping = computeShipping(subtotal, settings);
 
   const [form, setForm] = useState({
     customer_name: '',
@@ -27,7 +35,7 @@ export default function Checkout() {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  const total = subtotal + SHIPPING_FEE;
+  const total = subtotal + shipping.fee;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -38,7 +46,8 @@ export default function Checkout() {
     try {
       const payload = {
         ...form,
-        shipping_fee: SHIPPING_FEE,
+        // Le serveur recalcule les frais de livraison lui-même à partir des
+        // réglages admin — inutile (et pas fiable) de lui faire confiance ici.
         items: items.map((it) => ({
           product_id: it.product_id,
           quantity: it.quantity,
@@ -162,6 +171,13 @@ export default function Checkout() {
               </li>
             ))}
           </ul>
+          {shipping.freeShipping ? (
+            <p className="text-xs font-medium text-[var(--color-sage)] mb-3">Livraison gratuite</p>
+          ) : shipping.remaining > 0 && (
+            <p className="text-xs font-medium text-[var(--color-amber-dark)] mb-3">
+              Plus que {formatPrice(shipping.remaining)} pour bénéficier de la livraison gratuite
+            </p>
+          )}
           <div className="border-t border-[var(--color-line)] pt-4 space-y-2">
             <div className="flex justify-between text-sm text-[var(--color-muted)]">
               <span>Sous-total</span>
@@ -169,7 +185,7 @@ export default function Checkout() {
             </div>
             <div className="flex justify-between text-sm text-[var(--color-muted)]">
               <span>Livraison</span>
-              <span>{SHIPPING_FEE === 0 ? 'Gratuite' : formatPrice(SHIPPING_FEE)}</span>
+              <span>{shipping.fee === 0 ? 'Gratuite' : formatPrice(shipping.fee)}</span>
             </div>
             <div className="flex justify-between font-display text-lg pt-2">
               <span>Total</span>

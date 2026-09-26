@@ -35,7 +35,7 @@ router.post(
     const {
       customer_name, customer_phone, customer_email,
       shipping_address, shipping_city, shipping_postal_code, customer_note,
-      payment_method, items, shipping_fee,
+      payment_method, items,
     } = req.body;
 
     const client = await pool.connect();
@@ -94,7 +94,16 @@ router.post(
         });
       }
 
-      const shippingFeeValue = Number(shipping_fee) || 0;
+      // Frais de livraison recalculés côté serveur à partir des réglages
+      // admin : jamais confiance dans un montant envoyé par le navigateur.
+      const settingsResult = await client.query(
+        "SELECT key, value FROM site_settings WHERE key IN ('shipping_fee', 'free_shipping_threshold')"
+      );
+      const settingsMap = Object.fromEntries(settingsResult.rows.map((r) => [r.key, r.value]));
+      const configuredFee = Number(settingsMap.shipping_fee) || 0;
+      const freeShippingThreshold = Number(settingsMap.free_shipping_threshold) || 0;
+      const qualifiesForFreeShipping = freeShippingThreshold > 0 && subtotal >= freeShippingThreshold;
+      const shippingFeeValue = qualifiesForFreeShipping ? 0 : configuredFee;
       const total = subtotal + shippingFeeValue;
 
       // Paiement à la livraison = statut "pending" jusqu'à réception.

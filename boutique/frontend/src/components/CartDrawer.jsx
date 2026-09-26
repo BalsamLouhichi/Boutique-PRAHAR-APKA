@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
-import { resolveImageUrl } from '../api/client.js';
+import { api, resolveImageUrl } from '../api/client.js';
 import { formatPrice } from '../utils/price.js';
+import { computeShipping } from '../utils/shipping.js';
 
 // Ligne de panier : quantité modifiable uniquement par les boutons +/- (pas
 // de saisie manuelle), bornée au stock connu pour cette couleur.
@@ -55,11 +56,22 @@ function CartLineItem({ item, onUpdateQuantity, onRemove }) {
 export default function CartDrawer() {
   const { items, isOpen, setIsOpen, updateQuantity, removeItem, clearCart, totalItems, subtotal } = useCart();
   const navigate = useNavigate();
+  const [settings, setSettings] = useState({});
+
+  useEffect(() => {
+    api.getSettings().then(setSettings).catch(() => {});
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
+
+  // Recalculé à chaque rendu : reflète automatiquement toute modification de
+  // quantité (subtotal vient du contexte panier, qui se met à jour à chaque
+  // clic sur +/-).
+  const shipping = computeShipping(subtotal, settings);
+  const total = subtotal + shipping.fee;
 
   return (
     <>
@@ -84,7 +96,20 @@ export default function CartDrawer() {
 
         {items.length > 0 && (
           <div className="border-t border-[var(--color-line)] px-6 py-5 space-y-3">
-            <div className="flex items-center justify-between text-lg font-display"><span>Total</span><span>{formatPrice(subtotal)}</span></div>
+            {shipping.freeShipping ? (
+              <p className="text-xs font-medium text-[var(--color-sage)]">Livraison gratuite</p>
+            ) : shipping.remaining > 0 && (
+              <p className="text-xs font-medium text-[var(--color-amber-dark)]">
+                Plus que {formatPrice(shipping.remaining)} pour bénéficier de la livraison gratuite
+              </p>
+            )}
+            <div className="flex items-center justify-between text-sm text-[var(--color-muted)]">
+              <span>Sous-total</span><span>{formatPrice(subtotal)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm text-[var(--color-muted)]">
+              <span>Livraison</span><span>{shipping.fee === 0 ? 'Gratuite' : formatPrice(shipping.fee)}</span>
+            </div>
+            <div className="flex items-center justify-between text-lg font-display pt-1"><span>Total</span><span>{formatPrice(total)}</span></div>
             <button onClick={() => { setIsOpen(false); navigate('/checkout'); }} className="w-full bg-[var(--color-ink)] hover:bg-[var(--color-ink-light)] text-white font-semibold py-3 rounded-lg transition-colors">Passer la commande</button>
             <button onClick={clearCart} className="w-full text-xs text-[var(--color-muted)] hover:underline">Vider le panier</button>
           </div>
