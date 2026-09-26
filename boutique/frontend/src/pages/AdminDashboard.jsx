@@ -187,7 +187,7 @@ export default function AdminDashboard() {
         ) : (
           <header className="bg-white border-b border-[var(--color-line)] px-6 py-4 flex items-center justify-between">
             <h2 className="font-display text-xl">Dashboard des statistiques</h2>
-            <OrderNotificationBell orders={orders} onOrdersUpdated={loadData} />
+            <OrderNotificationBell orders={orders} />
           </header>
         )}
 

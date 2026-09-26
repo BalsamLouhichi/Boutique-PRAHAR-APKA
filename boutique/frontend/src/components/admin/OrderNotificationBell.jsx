@@ -1,32 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../api/client.js';
 import { formatPrice } from '../../utils/price.js';
 import { formatRelativeTime } from '../../utils/relativeTime.js';
 
 // Cloche de notification : liste des commandes pas encore consultées
-// (orders.viewed_at IS NULL). Cliquer sur la cloche les marque toutes comme
-// vues immédiatement (le badge se vide), tout en gardant la liste affichée
-// dans le panneau tant qu'il reste ouvert. Cliquer sur une commande ouvre
-// la page Commandes avec cette commande déjà sélectionnée.
-export default function OrderNotificationBell({ orders, onOrdersUpdated }) {
+// (orders.viewed_at IS NULL). Ouvrir le panneau ne marque rien comme lu —
+// seul un clic sur une commande précise (son nom) la marque vue, via la
+// même mécanique que dans la page Commandes (openOrder -> markViewed).
+export default function OrderNotificationBell({ orders }) {
   const [open, setOpen] = useState(false);
-  const [panelOrders, setPanelOrders] = useState([]);
   const navigate = useNavigate();
 
   const unviewed = orders.filter((o) => !o.viewed_at);
-
-  function handleToggle() {
-    if (!open) {
-      setPanelOrders(unviewed.slice(0, 8));
-      if (unviewed.length > 0) {
-        api.markAllOrdersViewed()
-          .then(() => onOrdersUpdated?.())
-          .catch(() => {});
-      }
-    }
-    setOpen((o) => !o);
-  }
 
   function handleSelect(order) {
     setOpen(false);
@@ -37,7 +22,7 @@ export default function OrderNotificationBell({ orders, onOrdersUpdated }) {
     <div className="relative">
       <button
         type="button"
-        onClick={handleToggle}
+        onClick={() => setOpen((o) => !o)}
         className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-line)] hover:border-[var(--color-amber)] transition-colors"
         aria-label={unviewed.length > 0 ? `${unviewed.length} nouvelle(s) commande(s) non consultée(s)` : 'Aucune nouvelle commande'}
         title="Commandes"
@@ -61,10 +46,10 @@ export default function OrderNotificationBell({ orders, onOrdersUpdated }) {
               <h3 className="font-display text-lg text-[var(--color-ink)]">Notifications</h3>
             </div>
             <div className="max-h-80 overflow-y-auto">
-              {panelOrders.length === 0 ? (
+              {unviewed.length === 0 ? (
                 <p className="px-4 py-6 text-sm text-[var(--color-muted)] text-center">Aucune nouvelle commande.</p>
               ) : (
-                panelOrders.map((order) => (
+                unviewed.slice(0, 8).map((order) => (
                   <button
                     key={order.id}
                     type="button"

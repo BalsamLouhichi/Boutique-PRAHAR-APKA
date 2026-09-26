@@ -156,7 +156,7 @@ export default function AdminOrders() {
           {(statusFilter || viewedFilter || dateFrom || dateTo || search) && (
             <button onClick={resetFilters} className="text-sm text-[var(--color-amber-dark)] hover:underline">Réinitialiser</button>
           )}
-          <OrderNotificationBell orders={orders} onOrdersUpdated={loadOrders} />
+          <OrderNotificationBell orders={orders} />
         </div>
       </header>
 
