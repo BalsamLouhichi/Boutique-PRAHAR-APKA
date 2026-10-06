@@ -8,12 +8,6 @@ export default function WholesaleBanner() {
         <div className="pointer-events-none absolute -bottom-24 -left-16 w-72 h-72 rounded-full bg-[var(--color-sage)]/10 blur-3xl" />
 
         <div className="relative flex flex-col items-center text-center gap-5 px-6 sm:px-10 py-14 sm:py-20">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white border border-[var(--color-line)] shadow-sm">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--color-amber-dark)" strokeWidth="1.5">
-              <path d="M20 7h-9M14 17H5M17 4a3 3 0 100 6 3 3 0 000-6zM7 14a3 3 0 100 6 3 3 0 000-6z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-
           <p className="text-[var(--color-amber-dark)] font-semibold uppercase tracking-wide text-sm">
             Vous êtes une boutique ou un revendeur ?
           </p>
