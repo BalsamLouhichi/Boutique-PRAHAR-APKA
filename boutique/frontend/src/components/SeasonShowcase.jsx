@@ -45,9 +45,8 @@ export default function SeasonShowcase() {
   if (tiles.length < 2) return null; // pas assez de photos pour les deux saisons
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
       <div className="mb-6">
-        <p className="text-xs uppercase tracking-wide text-[var(--color-amber-dark)] font-semibold mb-1">Rayons</p>
         <h2 className="font-display text-3xl">Achetez par saison</h2>
       </div>
 
