@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
+import AdminLayout from '../components/admin/AdminLayout.jsx';
 
 function ToggleSwitch({ checked, onChange, disabled = false, label }) {
   return (
@@ -25,7 +25,6 @@ export default function AdminWholesaleAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
-  const navigate = useNavigate();
 
   function loadAccounts() {
     setLoading(true);
@@ -58,27 +57,8 @@ export default function AdminWholesaleAccounts() {
     }
   }
 
-  function handleLogout() {
-    localStorage.removeItem('admin_token');
-    navigate('/admin/login');
-  }
-
   return (
-    <div className="min-h-screen bg-[var(--color-paper)] flex">
-      <aside className="w-72 bg-[var(--color-ink)] text-white p-6 flex-shrink-0">
-        <div className="mb-8"><h1 className="font-display text-3xl">PRAHAR ŞAPKA</h1><p className="mt-2 text-sm text-white/70">Admin panel</p></div>
-        <nav className="space-y-2">
-          <Link to="/admin" className="flex rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10">Dashboard</Link>
-          <Link to="/admin/articles" className="flex rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10">Gestion des articles</Link>
-          <Link to="/admin/categories" className="flex rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10">Catégories</Link>
-          <Link to="/admin/orders" className="flex rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10">Commandes</Link>
-          <Link to="/admin/comptes-gros" className="flex rounded-xl bg-white/10 px-3 py-2.5 font-medium text-white">Comptes grossistes</Link>
-          <Link to="/admin/articles" className="block rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10">+ Nouvel article</Link>
-        </nav>
-        <div className="mt-10 border-t border-white/10 pt-6"><button onClick={handleLogout} className="text-sm text-white/80 hover:text-white">Déconnexion</button></div>
-      </aside>
-
-      <div className="flex-1 min-w-0">
+    <AdminLayout active="wholesale">
         <header className="bg-white border-b border-[var(--color-line)] px-6 py-4"><h1 className="font-display text-xl">Comptes grossistes</h1></header>
         <main className="max-w-5xl mx-auto px-6 py-8">
           {loading ? <p className="text-sm text-[var(--color-muted)]">Chargement...</p> : (
@@ -112,7 +92,6 @@ export default function AdminWholesaleAccounts() {
             </div>
           )}
         </main>
-      </div>
-    </div>
+    </AdminLayout>
   );
 }

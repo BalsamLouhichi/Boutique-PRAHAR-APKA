@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
+import AdminLayout from '../components/admin/AdminLayout.jsx';
 
 const emptyForm = {
   name: '',
@@ -10,7 +10,6 @@ const emptyForm = {
 };
 
 export default function AdminCategories() {
-  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -101,49 +100,19 @@ export default function AdminCategories() {
     }
   }
 
-  function handleLogout() {
-    localStorage.removeItem('admin_token');
-    navigate('/admin/login');
-  }
-
   return (
-    <div className="min-h-screen bg-[var(--color-paper)] flex">
-      <aside className="w-72 bg-[var(--color-ink)] text-white p-6 flex-shrink-0">
-        <div className="mb-8">
-          <h1 className="font-display text-3xl">PRAHAR ŞAPKA</h1>
-          <p className="mt-2 text-sm text-white/70">Admin panel</p>
-        </div>
-
-        <nav className="space-y-2">
-          <Link to="/admin" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
-            <span>Dashboard</span>
-          </Link>
-          <Link to="/admin/articles" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
-            <span>Gestion des articles</span>
-          </Link>
-          <Link to="/admin/categories" className="flex items-center justify-between rounded-xl px-3 py-2.5 bg-white/10 text-white font-medium hover:bg-white/15 transition-colors">
-            <span>Catégories</span>
-          </Link>
-          <Link to="/admin/orders" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
-            <span>Commandes</span>
-          </Link>
-          <Link to="/admin/comptes-gros" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">
-            <span>Comptes grossistes</span>
-          </Link>
-          <button
-            onClick={openCreateModal}
-            className="w-full text-left rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors"
-          >
-            + Nouvelle catégorie
-          </button>
-        </nav>
-
-        <div className="mt-10 pt-6 border-t border-white/10">
-          <button onClick={handleLogout} className="text-sm text-white/80 hover:text-white transition-colors">Déconnexion</button>
-        </div>
-      </aside>
-
-      <div className="flex-1">
+    <>
+    <AdminLayout
+      active="categories"
+      extraNavAction={(
+        <button
+          onClick={openCreateModal}
+          className="w-full text-left rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors"
+        >
+          + Nouvelle catégorie
+        </button>
+      )}
+    >
         <header className="bg-white border-b border-[var(--color-line)] px-6 py-5">
           <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
             <div>
@@ -172,8 +141,8 @@ export default function AdminCategories() {
           {loading ? (
             <p className="text-sm text-[var(--color-muted)]">Chargement...</p>
           ) : (
-            <div className="bg-white rounded-2xl border border-[var(--color-line)] overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="bg-white rounded-2xl border border-[var(--color-line)] overflow-x-auto">
+              <table className="w-full min-w-[480px] text-sm">
                 <thead className="bg-[var(--color-paper)] text-left">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Nom</th>
@@ -210,11 +179,11 @@ export default function AdminCategories() {
             </div>
           )}
         </main>
-      </div>
+    </AdminLayout>
 
       {modalOpen && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center overflow-y-auto py-10">
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-xl p-8 mx-4">
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-xl p-4 sm:p-8 mx-4">
             <h2 className="font-display text-2xl mb-6">{editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie'}</h2>
 
             {error && (
@@ -284,6 +253,6 @@ export default function AdminCategories() {
           </form>
         </div>
       )}
-    </div>
+    </>
   );
 }

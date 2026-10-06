@@ -135,8 +135,8 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center overflow-y-auto py-10">
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-2xl p-8 mx-4">
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center overflow-y-auto py-4 sm:py-10">
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-2xl p-4 sm:p-8 mx-2 sm:mx-4">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-amber-dark)]">{form.sale_type === 'gros' ? 'Catalogue professionnel' : 'Catalogue boutique'}</p>
@@ -147,7 +147,7 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
 
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">{error}</p>}
 
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium mb-1">Nom de l'article *</label>
             <input
@@ -176,7 +176,7 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
           />
         </div>
 
-        {form.sale_type === 'detail' ? <div className="grid grid-cols-2 gap-4 mb-4">
+        {form.sale_type === 'detail' ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium mb-1">Prix de vente (TRY) *</label>
             <input required type="number" min="0.01" step="0.01" value={form.price} onChange={(e) => update('price', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />
@@ -187,7 +187,7 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
           </div>
         </div> : <div className="mb-4 rounded-xl border border-[var(--color-amber)]/30 bg-[var(--color-paper)] px-4 py-3 text-sm text-[var(--color-muted)]">Les articles en gros sont proposés sur devis. Aucun prix de vente ni stock n’est requis ici.</div>}
 
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium mb-1">Catégorie *</label>
             <select value={form.category_id} onChange={(e) => update('category_id', e.target.value)} className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm">
@@ -212,7 +212,7 @@ export default function ProductForm({ product, categories, saleType = 'detail', 
           </div>
         </div>
 
-        <div className={`grid gap-4 mb-4 ${form.sale_type === 'gros' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        <div className={`grid grid-cols-1 gap-4 mb-4 ${form.sale_type === 'gros' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
           <div>
             <label className="block text-sm font-medium mb-1">Couleurs (séparées par virgule)</label>
             <input value={form.colors} onChange={(e) => update('colors', e.target.value)} placeholder="Noir, Gris, Bleu" className="w-full border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm" />

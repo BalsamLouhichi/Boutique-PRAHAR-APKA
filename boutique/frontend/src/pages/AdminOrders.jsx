@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { formatPrice } from '../utils/price.js';
 import OrderNotificationBell from '../components/admin/OrderNotificationBell.jsx';
+import AdminLayout from '../components/admin/AdminLayout.jsx';
 
 const STATUS_LABELS = {
   nouvelle: 'Nouvelle', en_preparation: 'En préparation', expediee: 'Expédiée',
@@ -40,11 +41,6 @@ export default function AdminOrders() {
     }
     return true;
   });
-
-  function handleLogout() {
-    localStorage.removeItem('admin_token');
-    navigate('/admin/login');
-  }
 
   function loadOrders() {
     setLoading(true);
@@ -109,34 +105,19 @@ export default function AdminOrders() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-paper)] flex">
-      <aside className="w-72 bg-[var(--color-ink)] text-white p-6 flex-shrink-0">
-        <div className="mb-8">
-          <h1 className="font-display text-3xl">PRAHAR ŞAPKA</h1>
-          <p className="mt-2 text-sm text-white/70">Admin panel</p>
+    <AdminLayout active="orders">
+      <header className="bg-white border-b border-[var(--color-line)] px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="font-display text-xl">Commandes</h1>
+          <div className="lg:hidden"><OrderNotificationBell orders={orders} /></div>
         </div>
-        <nav className="space-y-2">
-          <Link to="/admin" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">Dashboard</Link>
-          <Link to="/admin/articles" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">Gestion des articles</Link>
-          <Link to="/admin/categories" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">Catégories</Link>
-          <Link to="/admin/orders" className="flex items-center justify-between rounded-xl px-3 py-2.5 bg-white/10 text-white font-medium transition-colors">Commandes</Link>
-          <Link to="/admin/comptes-gros" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-white/80 hover:bg-white/10 transition-colors">Comptes grossistes</Link>
-        </nav>
-        <div className="mt-10 pt-6 border-t border-white/10">
-          <button onClick={handleLogout} className="text-sm text-white/80 hover:text-white transition-colors">Déconnexion</button>
-        </div>
-      </aside>
-
-      <div className="flex-1 min-w-0">
-      <header className="bg-white border-b border-[var(--color-line)] px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
-        <h1 className="font-display text-xl">Commandes</h1>
         <div className="flex items-center gap-3 flex-wrap">
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Nom, téléphone ou adresse..."
-            className="w-64 border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm"
+            className="w-full sm:w-64 border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm"
             aria-label="Rechercher une commande"
           />
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border border-[var(--color-line)] rounded-lg px-3 py-2 text-sm">
@@ -156,7 +137,7 @@ export default function AdminOrders() {
           {(statusFilter || viewedFilter || dateFrom || dateTo || search) && (
             <button onClick={resetFilters} className="text-sm text-[var(--color-amber-dark)] hover:underline">Réinitialiser</button>
           )}
-          <OrderNotificationBell orders={orders} />
+          <div className="hidden lg:block"><OrderNotificationBell orders={orders} /></div>
         </div>
       </header>
 
@@ -185,11 +166,11 @@ export default function AdminOrders() {
         </section>
 
         <div className="grid lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-[var(--color-line)] overflow-hidden">
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-[var(--color-line)] overflow-x-auto">
           {loading ? (
             <p className="p-6 text-sm text-[var(--color-muted)]">Chargement...</p>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[480px] text-sm">
               <thead className="bg-[var(--color-paper)] text-left">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Client</th>
@@ -287,7 +268,6 @@ export default function AdminOrders() {
         </div>
         </div>
       </main>
-      </div>
-    </div>
+    </AdminLayout>
   );
 }
